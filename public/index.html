@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Store - Customer Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <div class="logo-area">
+      <h1>🛍️ Smart Store</h1>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-bar-wrap">
+      <input type="text" id="search-input" placeholder="🔍 Search products by name or category..." oninput="handleSearch()">
+    </div>
+
+    <div class="nav-right">
+      <div id="user-pill" class="user-pill" style="display: none;">
+        <span id="user-display-name">User</span>
+        <button class="small-btn" onclick="openMyOrders()">My Orders</button>
+        <button class="small-btn red" onclick="logoutCustomer()">Logout</button>
+      </div>
+      <button id="auth-btn" class="nav-btn" onclick="openAuthModal()">👤 Login / Register</button>
+      <button class="cart-btn" onclick="toggleCart()">🛒 Cart (<span id="cart-count">0</span>)</button>
+    </div>
+  </header>
+
+  <!-- Banner Section -->
+  <div class="banner-container" id="banner-container">
+    <div class="banner-box">
+      <img id="offer-banner-img" src="" alt="Special Offers">
+      <div class="banner-caption" id="offer-banner-title"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Category Chips -->
+    <div class="category-chips-bar" id="category-chips">
+      <!-- Injected via JS -->
+    </div>
+
+    <!-- Products Grid -->
+    <h2>Available Products</h2>
+    <div id="product-list" class="grid"></div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div id="cart-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="toggleCart()">&times;</span>
+      <h2>Aapka Cart</h2>
+      <div id="cart-items"></div>
+      <h3>Total: ₹<span id="cart-total">0</span></h3>
+      <hr>
+      <h3>Delivery Address Details</h3>
+      <input type="text" id="cust-name" placeholder="Aapka Poora Naam" required>
+      <input type="tel" id="cust-phone" placeholder="Mobile Number" required>
+      <textarea id="cust-address" placeholder="Ghar ka Pata, City, Pincode" required></textarea>
+      <button class="primary-btn checkout" onclick="checkout()">Confirm Order</button>
+    </div>
+  </div>
+
+  <!-- Customer Auth Modal (Google & Phone OTP) -->
+  <div id="auth-modal" class="modal">
+    <div class="modal-content auth-modal-box">
+      <span class="close" onclick="closeAuthModal()">&times;</span>
+      <h2>Customer Login / Register</h2>
+      
+      <!-- Google Auth Button -->
+      <button class="google-btn" onclick="loginWithGoogle()">
+        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
+        Continue with Google
+      </button>
+
+      <div class="or-separator"><span>OR LOGIN VIA PHONE</span></div>
+
+      <!-- Phone Number Login Section -->
+      <div id="phone-step-1">
+        <input type="tel" id="auth-phone" placeholder="Enter 10-digit Phone Number">
+        <button class="primary-btn" onclick="sendOtp()">Send OTP</button>
+      </div>
+
+      <div id="phone-step-2" style="display: none;">
+        <p style="font-size: 13px; color: #64748b;">Dummy OTP <b>1234</b> has been sent.</p>
+        <input type="text" id="auth-otp" placeholder="Enter OTP (Use 1234)">
+        <input type="text" id="auth-user-name" placeholder="Your Name">
+        <button class="primary-btn" onclick="verifyOtp()">Verify & Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Orders Modal -->
+  <div id="orders-modal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <span class="close" onclick="closeMyOrders()">&times;</span>
+      <h2>📦 My Order History</h2>
+      <div id="my-orders-list"></div>
+    </div>
+  </div>
+
+  <!-- Floating Live Support Chat Box -->
+  <div class="chat-floating-btn" onclick="toggleChat()">💬 Support</div>
+  <div class="chat-widget" id="chat-widget">
+    <div class="chat-header">
+      <span>Customer Support Helpdesk</span>
+      <span class="chat-close" onclick="toggleChat()">&times;</span>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-area">
+      <input type="text" id="chat-input" placeholder="Type your issue..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+      <button onclick="sendChatMessage()">Send</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
