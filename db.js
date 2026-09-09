@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // MongoDB Connection URL (Localhost MongoDB)
-const MONGO_URI = "mongodb+srv://prabhakarsingh8586_db_user:8FPAeJE1W0fmL9aC@cluster0.lmultuc.mongodb.net/?appName=Cluster0";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://prabhakarsingh8586_db_user:8FPAeJE1W8fmL9aC@cluster0.lmultuc.mongodb.net/ecomarce_db?retryWrites=true&w=majority&appName=Cluster0";
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Database Successfully Connected!"))
