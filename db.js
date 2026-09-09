@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://prabhakarsingh8586_db_user:8FPAeJE1W8fmL9aC@cluster0.lmultuc.mongodb.net/ecomarce_db?retryWrites=true&w=majority&appName=Cluster0";
-
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://adminuser:Adminpass123@cluster0.lmultuc.mongodb.net/ecomarce_db?retryWrites=true&w=majority&appName=Cluster0";
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(MONGO_URI, {
