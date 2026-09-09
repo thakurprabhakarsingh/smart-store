@@ -1,9 +1,13 @@
 const mongoose = require('mongoose');
 
-// MongoDB Connection URL (Localhost MongoDB)
+// MongoDB Connection URL (Render Environment Variable ya Atlas fallback)
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://prabhakarsingh8586_db_user:8FPAeJE1W8fmL9aC@cluster0.lmultuc.mongodb.net/ecomarce_db?retryWrites=true&w=majority&appName=Cluster0";
 
-mongoose.connect(MONGO_URI)
+// Connection with increased timeouts and proper buffering
+mongoose.connect(MONGO_URI, {
+  serverSelectionTimeoutMS: 30000, // 30 seconds wait time for Atlas cold start
+  socketTimeoutMS: 45000,
+})
   .then(() => console.log("✅ MongoDB Database Successfully Connected!"))
   .catch((err) => console.error("❌ Database Connection Error:", err));
 

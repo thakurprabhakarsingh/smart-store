@@ -1,19 +1,21 @@
 const express = require('express');
 const path = require('path');
-const connectDB = require('./db');
+
+// Models aur DB connection import karein
+const { Admin, Banner, Category, Product, Order, Message } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database Connection
-connectDB();
-
-// Body Parser
+// Body Parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve Static Files
+// Serve Public Static Files (Customer frontend CSS/JS/images)
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve Admin Static Assets (admin.css, admin.js)
+app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
 // Customer Route
 app.get('/', (req, res) => {
@@ -25,12 +27,14 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
 });
 
-// Admin nested routes fallback
+// Admin Nested Route Fallback
 app.get('/admin/*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
 });
 
-// Start Server
+// Start Server on 0.0.0.0 for Render
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
+    console.log(`Customer URL: http://localhost:${PORT}`);
+    console.log(`Admin URL: http://localhost:${PORT}/admin`);
 });
