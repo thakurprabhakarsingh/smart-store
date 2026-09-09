@@ -5,7 +5,6 @@ window.onload = () => {
   if (adminToken) showDashboard();
 };
 
-// Section & Tab Switching
 function switchSection(secId, btn) {
   document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
@@ -13,7 +12,6 @@ function switchSection(secId, btn) {
   btn.classList.add('active');
 }
 
-// Collapsible Helper
 function toggleAccordion(id) {
   const elem = document.getElementById(id);
   const isOpen = elem.style.display === 'block';
@@ -27,7 +25,6 @@ function toggleItemCollapse(id) {
   el.style.display = el.style.display === 'block' ? 'none' : 'block';
 }
 
-// Auth Logic
 function switchAuthTab(tab) {
   document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('reg-form').style.display = tab === 'register' ? 'block' : 'none';
@@ -36,39 +33,53 @@ function switchAuthTab(tab) {
 }
 
 async function adminLogin() {
-  const username = document.getElementById('admin-user').value;
-  const password = document.getElementById('admin-pass').value;
+  const username = document.getElementById('admin-user').value.trim();
+  const password = document.getElementById('admin-pass').value.trim();
 
-  const res = await fetch('/api/admin/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  const data = await res.json();
-  if (data.success) {
-    adminToken = data.token;
-    localStorage.setItem('adminToken', adminToken);
-    showDashboard();
-  } else {
-    alert("Login Failed: " + data.message);
+  if (!username || !password) return alert("Username aur password enter karein!");
+
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      adminToken = data.token || 'admin-logged-in';
+      localStorage.setItem('adminToken', adminToken);
+      showDashboard();
+    } else {
+      alert("Login Failed: " + data.message);
+    }
+  } catch (err) {
+    alert("Connection Error: " + err.message);
   }
 }
 
 async function adminRegister() {
-  const username = document.getElementById('reg-user').value;
-  const password = document.getElementById('reg-pass').value;
-  const secretKey = document.getElementById('reg-secret').value;
+  const username = document.getElementById('reg-user').value.trim();
+  const password = document.getElementById('reg-pass').value.trim();
+  const secretKey = document.getElementById('reg-secret').value.trim();
 
-  const res = await fetch('/api/admin/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, secretKey })
-  });
-  const data = await res.json();
-  if (data.success) {
-    alert("Admin Registered Successfully! Login now.");
-    switchAuthTab('login');
-  } else alert("Error: " + data.message);
+  if (!username || !password) return alert("Username aur Password dono zaroori hain!");
+
+  try {
+    const res = await fetch('/api/admin/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, secretKey })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert("Admin Registered Successfully! Please Login.");
+      switchAuthTab('login');
+    } else {
+      alert("Error: " + data.message);
+    }
+  } catch (err) {
+    alert("Connection Error: " + err.message);
+  }
 }
 
 function showDashboard() {
@@ -87,11 +98,14 @@ function adminLogout() {
   location.reload();
 }
 
-// Products Inventory & Live Search
 async function loadAdminProducts() {
-  const res = await fetch('/api/products');
-  allProducts = await res.json();
-  renderProductsList(allProducts);
+  try {
+    const res = await fetch('/api/products');
+    allProducts = await res.json();
+    renderProductsList(allProducts);
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 function filterAdminProducts() {
@@ -129,10 +143,10 @@ function renderProductsList(list) {
 }
 
 async function addProduct() {
-  const name = document.getElementById('prod-name').value;
-  const price = document.getElementById('prod-price').value;
+  const name = document.getElementById('prod-name').value.trim();
+  const price = document.getElementById('prod-price').value.trim();
   const category = document.getElementById('prod-category').value;
-  const image = document.getElementById('prod-image').value;
+  const image = document.getElementById('prod-image').value.trim();
 
   if (!name || !price || !category || !image) return alert("Fill all details!");
 
@@ -177,7 +191,6 @@ async function deleteProduct(id) {
   else alert(data.message);
 }
 
-// Collapsible Orders List
 async function loadOrders() {
   const res = await fetch('/api/orders', {
     headers: { 'Authorization': adminToken }
@@ -192,7 +205,7 @@ async function loadOrders() {
     <div class="order-accordion-item">
       <div class="order-header-bar" onclick="toggleItemCollapse('order-body-${idx}')">
         <div>
-          <strong>${o.orderId}</strong> — ${o.customer.name} (₹${o.total})
+          <strong>${o.orderId}</strong> — ${o.customer ? o.customer.name : 'Customer'} (₹${o.total})
         </div>
         <div>
           <span style="font-size: 13px; font-weight: bold; color: ${o.delivered ? '#16a34a' : '#d97706'};">
@@ -202,14 +215,14 @@ async function loadOrders() {
         </div>
       </div>
       <div id="order-body-${idx}" class="order-body-content">
-        <p><b>Phone:</b> ${o.customer.phone}</p>
-        <p><b>Delivery Address:</b> ${o.customer.address}</p>
-        <p><b>Items:</b> ${o.items.map(i => `${i.name} (${i.quantity})`).join(', ')}</p>
+        <p><b>Phone:</b> ${o.customer ? o.customer.phone : 'N/A'}</p>
+        <p><b>Delivery Address:</b> ${o.customer ? o.customer.address : 'N/A'}</p>
+        <p><b>Items:</b> ${(o.items || []).map(i => `${i.name} (${i.quantity})`).join(', ')}</p>
         <p><b>Order Date:</b> ${o.date}</p>
         <hr>
         <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer;">
           <input type="checkbox" onchange="toggleDelivery('${o.orderId}')" ${o.delivered ? 'checked' : ''}>
-          Delivered Status (Tik Lagayein)
+          Mark Delivered
         </label>
       </div>
     </div>
@@ -225,7 +238,6 @@ async function toggleDelivery(orderId) {
   loadOrders();
 }
 
-// Collapsible Support Threads
 async function loadSupportThreads() {
   const res = await fetch('/api/support/messages');
   const allMessages = await res.json();
@@ -281,7 +293,6 @@ async function replyToCustomer(cid, cname) {
   loadSupportThreads();
 }
 
-// Banner & Categories Setup
 async function loadBannerData() {
   const res = await fetch('/api/banner');
   const banner = await res.json();
