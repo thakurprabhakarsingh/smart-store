@@ -47,6 +47,29 @@ app.post('/api/admin/login', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
+// Admin Register API Route
+app.post('/api/admin/register', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({ success: false, message: 'Username and password are required' });
+        }
+
+        const existingAdmin = await Admin.findOne({ username });
+        if (existingAdmin) {
+            return res.status(400).json({ success: false, message: 'Admin username already exists' });
+        }
+
+        const newAdmin = new Admin({ username, password });
+        await newAdmin.save();
+
+        res.status(201).json({ success: true, message: 'Admin registered successfully!' });
+    } catch (error) {
+        console.error('Register error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error during registration' });
+    }
+});
 // Start Server on 0.0.0.0 for Render
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
