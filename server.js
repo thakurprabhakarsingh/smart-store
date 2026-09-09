@@ -6,41 +6,42 @@ const connectDB = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect Database
+// Database Connection
 connectDB();
 
-// Middleware
+// Body Parser Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve all static assets (CSS, JS, images) from public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Session Setup
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'supersecretkey_change_in_production',
+    secret: process.env.SESSION_SECRET || 'smart_store_secure_secret_key',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // Render HTTP proxy ke piche false theek rehta hai
+    cookie: { secure: false }
 }));
 
-// Set View Engine (agar EJS use kar rahe hain)
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-// Import Routes
-const customerRoutes = require('./routes/customer');
-const adminRoutes = require('./routes/admin');
-
-// Mount Routes
-app.use('/', customerRoutes);
-app.use('/admin', adminRoutes);
-
-// 404 Handler
-app.use((req, res) => {
-    res.status(404).send('Page Not Found');
+// Route 1: Customer UI (Home Page)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start Server on 0.0.0.0
+// Route 2: Admin UI
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
+});
+
+// Fallback Route for direct admin page access
+app.get('/admin/*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
+});
+
+// Server Start (Render dynamic PORT & 0.0.0.0 binding)
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Live application ready`);
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Customer URL: http://localhost:${PORT}`);
+    console.log(`Admin URL: http://localhost:${PORT}/admin`);
 });
