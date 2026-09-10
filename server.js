@@ -37,7 +37,8 @@ app.post('/api/auth/send-fast-otp', async (req, res) => {
     console.log(`📱 Sending WhatsApp OTP to ${phone}...`);
 
     const messageText = `🔐 Aapka SmartStore verification code hai: *${generatedOtp}*. Yeh code agle 5 minute tak valid hai.`;
-    const recipient = `91${phone}@c.us`; // Indian country code prefix
+    // Naya code:
+const recipient = `+91${phone}`; // Indian country code prefix
 
     const response = await fetch(`https://api.ultramsg.com/${WHATSAPP_INSTANCE_ID}/messages/chat`, {
       method: 'POST',
