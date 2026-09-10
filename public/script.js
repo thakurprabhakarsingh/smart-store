@@ -1,3 +1,35 @@
+// ==================== FIREBASE CONFIGURATION ==================== //
+const firebaseConfig = {
+  apiKey: "AIzaSyBAYIUZIvEJ4Qef2TuG8NrZcpPKLyuR6F0",
+  authDomain: "smartstore-auth.firebaseapp.com",
+  projectId: "smartstore-auth",
+  storageBucket: "smartstore-auth.firebasestorage.app",
+  messagingSenderId: "10479269367",
+  appId: "1:10479269367:web:76be3bc01aa43804e96af2"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+let confirmationResultGlobal = null;
+
+function setupRecaptcha() {
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: () => {},
+      'expired-callback': () => {
+        if (window.recaptchaVerifier) {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier = null;
+        }
+      }
+    });
+  }
+}
+
 // ==================== APP STATE ==================== //
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -14,23 +46,31 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProducts();
 });
 
-// ==================== AUTH & LOGIN ==================== //
+// ==================== AUTH & SMS OTP HANDLING ==================== //
 function openAuthModal() {
   if (currentUser) {
     if (confirm("Kya aap logout karna chahte hain?")) {
+      auth.signOut();
       localStorage.removeItem('currentUser');
       currentUser = null;
       renderUserStatus();
       location.reload();
     }
   } else {
-    document.getElementById('auth-phone').value = '';
+    resetOtpStep();
     document.getElementById('auth-modal').style.display = 'flex';
   }
 }
 
 function closeAuthModal() {
   document.getElementById('auth-modal').style.display = 'none';
+}
+
+function resetOtpStep() {
+  document.getElementById('phone-step-1').style.display = 'block';
+  document.getElementById('phone-step-2').style.display = 'none';
+  document.getElementById('auth-phone').value = '';
+  document.getElementById('auth-otp').value = '';
 }
 
 function openProfileModal() {
@@ -51,29 +91,70 @@ function renderUserStatus() {
   const container = document.getElementById('user-header-status');
   if (currentUser) {
     const displayName = currentUser.name ? currentUser.name : currentUser.phone;
-    container.innerHTML = `<span style="font-size:14px; font-weight:600; cursor:pointer;" onclick="openProfileModal()">👋 ${displayName}</span>`;
+    container.innerHTML = `<span style="font-size:13px; font-weight:700; cursor:pointer;" onclick="openProfileModal()">👋 ${displayName}</span>`;
   } else {
     container.innerHTML = `<button class="nav-btn" onclick="openAuthModal()">Login</button>`;
   }
 }
 
-// Direct Instant Mobile Login
-async function directLogin() {
+// 1. Mobile Inbox par Free SMS OTP bhejna
+async function sendOtp() {
   const phone = document.getElementById('auth-phone').value.trim();
   if (!/^[6-9]\d{9}$/.test(phone)) {
-    alert("Kripya 10-digit valid mobile number enter karein!");
+    alert("Kripya 10-digit valid Indian mobile number enter karein!");
     return;
   }
 
-  const btn = document.getElementById('login-btn');
+  const btn = document.getElementById('send-otp-btn');
   btn.disabled = true;
-  btn.innerText = "Logging in...";
+  btn.innerText = "SMS OTP bhej rahe hain...";
 
   try {
-    const res = await fetch('/api/auth/login', {
+    setupRecaptcha();
+    const appVerifier = window.recaptchaVerifier;
+    const formattedPhone = '+91' + phone;
+
+    confirmationResultGlobal = await auth.signInWithPhoneNumber(formattedPhone, appVerifier);
+    
+    alert("✅ OTP aapke mobile number par SMS ke dwara bhej diya gaya hai!");
+    document.getElementById('phone-step-1').style.display = 'none';
+    document.getElementById('phone-step-2').style.display = 'block';
+  } catch (err) {
+    console.error("Firebase SMS Send Error:", err);
+    alert("SMS OTP bhejne me samasya: " + err.message);
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Send OTP via SMS";
+  }
+}
+
+// 2. OTP Verify karna aur MongoDB Database me sync karna
+async function verifyOtp() {
+  const otp = document.getElementById('auth-otp').value.trim();
+  const phone = document.getElementById('auth-phone').value.trim();
+
+  if (!otp || otp.length !== 6) {
+    alert("Kripya 6-digit OTP darj karein!");
+    return;
+  }
+
+  const btn = document.getElementById('verify-otp-btn');
+  btn.disabled = true;
+  btn.innerText = "Verifying...";
+
+  try {
+    const confirmation = await confirmationResultGlobal.confirm(otp);
+    const firebaseUser = confirmation.user;
+
+    // Backend route se MongoDB sync
+    const res = await fetch('/api/auth/firebase-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
+      body: JSON.stringify({ phone: phone, uid: firebaseUser.uid })
     });
 
     const data = await res.json();
@@ -86,21 +167,21 @@ async function directLogin() {
       if (!currentUser.profileCompleted) {
         openProfileModal();
       } else {
-        alert("Login safal raha!");
+        alert("🎉 Verification aur Login safal raha!");
       }
     } else {
-      alert(data.message || "Login me samasya aayi!");
+      alert("Database sync issue: " + data.message);
     }
   } catch (err) {
-    console.error("Login Error:", err);
-    alert("Server error, kripya dubara koshish karein!");
+    console.error("OTP Verification Error:", err);
+    alert("Galat OTP ya code expire ho chuka hai!");
   } finally {
     btn.disabled = false;
-    btn.innerText = "Login / Register";
+    btn.innerText = "Verify OTP";
   }
 }
 
-// Save Profile
+// Profile Save
 async function saveProfile() {
   const name = document.getElementById('prof-name').value.trim();
   const houseNo = document.getElementById('prof-house').value.trim();
@@ -242,7 +323,7 @@ async function loadProducts(query = '') {
     const list = document.getElementById('product-list');
 
     if (products.length === 0) {
-      list.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#94a3b8;">Koi product uplabdh nahi hai.</p>';
+      list.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#94a3b8; padding: 20px 0;">Koi product uplabdh nahi hai.</p>';
       return;
     }
 
@@ -306,12 +387,12 @@ function renderCartView() {
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;">
         <div>
-          <div style="font-weight:600;">${item.name}</div>
-          <div style="color:#64748b; font-size:13px;">₹${item.price} x ${item.quantity}</div>
+          <div style="font-weight:600; font-size:13px;">${item.name}</div>
+          <div style="color:#64748b; font-size:12px;">₹${item.price} x ${item.quantity}</div>
         </div>
         <div style="display:flex; gap:6px; align-items:center;">
           <button onclick="changeQty('${item.id}', -1)" style="padding:2px 8px; cursor:pointer;">-</button>
-          <span>${item.quantity}</span>
+          <span style="font-size:13px;">${item.quantity}</span>
           <button onclick="changeQty('${item.id}', 1)" style="padding:2px 8px; cursor:pointer;">+</button>
         </div>
       </div>
@@ -336,7 +417,7 @@ async function checkout() {
     return;
   }
   if (!currentUser) {
-    alert("Order karne ke liye pehle Login karein!");
+    alert("Order karne ke liye pehle Mobile OTP se Login karein!");
     openAuthModal();
     return;
   }
@@ -364,7 +445,7 @@ async function checkout() {
 // ==================== ORDERS & SUPPORT CHAT ==================== //
 async function openOrdersModal() {
   if (!currentUser) {
-    alert("Pehle login karein!");
+    alert("Pehle mobile number se login karein!");
     openAuthModal();
     return;
   }
@@ -377,13 +458,13 @@ async function openOrdersModal() {
     const res = await fetch(`/api/orders/my-orders?customerId=${currentUser.phone}`);
     const orders = await res.json();
     if (!orders.length) {
-      list.innerHTML = '<p style="text-align:center; color:#64748b;">Koi order record nahi mila.</p>';
+      list.innerHTML = '<p style="text-align:center; color:#64748b; padding: 20px 0;">Koi order record nahi mila.</p>';
       return;
     }
     list.innerHTML = orders.map(o => `
       <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-bottom:10px; border-left: 4px solid #2563eb;">
-        <div style="font-weight:bold;">Order ID: ${o.orderId}</div>
-        <div style="font-size:13px; color:#64748b;">Total: ₹${o.total} | Status: ${o.delivered ? '✅ Delivered' : '⏳ Processing'}</div>
+        <div style="font-weight:bold; font-size:13px;">Order ID: ${o.orderId}</div>
+        <div style="font-size:12px; color:#64748b; margin-top:2px;">Total: ₹${o.total} | Status: ${o.delivered ? '✅ Delivered' : '⏳ Processing'}</div>
       </div>
     `).join('');
   } catch (e) {

@@ -2,10 +2,14 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Smart Store - Shopping Portal</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Firebase Compat App & Auth SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -13,37 +17,40 @@
   <header class="navbar">
     <div class="brand">🛒 SmartStore</div>
     <div class="search-bar-wrap">
-      <input type="text" id="search-input" placeholder="Search products..." oninput="handleSearch()">
+      <input type="text" id="search-input" placeholder="🔍 Search products..." oninput="handleSearch()">
     </div>
     <div class="header-right" id="user-header-status">
       <button class="nav-btn" onclick="openAuthModal()">Login</button>
     </div>
   </header>
 
-  <main class="page-body">
-    <!-- 2. Full Width Auto-Sliding Banner -->
-    <div class="carousel-container">
-      <div class="carousel-slider" id="carousel-slider"></div>
-      <div class="carousel-dots" id="carousel-dots"></div>
-    </div>
+  <!-- Main Scrollable Content -->
+  <main class="main-wrapper">
+    <!-- 2. Auto-Sliding Banner -->
+    <section class="banner-section">
+      <div class="carousel-container">
+        <div class="carousel-slider" id="carousel-slider"></div>
+        <div class="carousel-dots" id="carousel-dots"></div>
+      </div>
+    </section>
 
     <!-- 3. Category Horizontal Scroll -->
-    <section class="section-block">
+    <section class="section-container">
       <h3 class="section-title">Shop by Category</h3>
       <div class="category-chips-bar" id="category-chips"></div>
     </section>
 
-    <!-- 4. Best Deals / Best Sellers (Side Scroll) -->
-    <section class="section-block" id="best-deals-wrapper" style="display: none;">
+    <!-- 4. Today's Best Deals (Side Scroll) -->
+    <section class="section-container" id="best-deals-wrapper" style="display: none;">
       <div class="section-header-flex">
-        <h3 class="section-title text-danger">🔥 Today's Best Deals</h3>
-        <span class="scroll-hint">Swipe &rarr;</span>
+        <h3 class="section-title title-deal">🔥 Today's Best Deals</h3>
+        <span class="scroll-tag">Swipe &rarr;</span>
       </div>
       <div class="best-deals-scroll" id="best-deals-list"></div>
     </section>
 
-    <!-- 5. All Products (Grid with Vertical + Horizontal Responsiveness) -->
-    <section class="section-block">
+    <!-- 5. All Available Products -->
+    <section class="section-container">
       <h3 class="section-title">Available Products</h3>
       <div class="product-grid" id="product-list"></div>
     </section>
@@ -63,7 +70,7 @@
       <span>Cart</span>
     </button>
     <button class="b-tab" onclick="navigateTab('orders', this)">
-      <i class="fa-solid fa-box-open"></i>
+      <i class="fa-solid fa-box"></i>
       <span>Orders</span>
     </button>
     <button class="b-tab" onclick="navigateTab('profile', this)">
@@ -76,14 +83,29 @@
     </button>
   </nav>
 
-  <!-- Login Modal -->
+  <!-- Google reCAPTCHA Invisible Container -->
+  <div id="recaptcha-container"></div>
+
+  <!-- Mobile SMS OTP Login Modal -->
   <div id="auth-modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeAuthModal()">&times;</span>
-      <h3>📱 Mobile Login</h3>
-      <p class="modal-desc">10-digit mobile number enter karein</p>
-      <input type="tel" id="auth-phone" maxlength="10" placeholder="Mobile Number (e.g. 9876543210)">
-      <button class="primary-btn" id="login-btn" onclick="directLogin()">Login / Register</button>
+      <h3>📱 Mobile Verification</h3>
+      
+      <!-- Step 1: Mobile Input -->
+      <div id="phone-step-1">
+        <p class="modal-hint">10-digit mobile number enter karein, SMS OTP aayega</p>
+        <input type="tel" id="auth-phone" maxlength="10" placeholder="Mobile Number (e.g. 9876543210)">
+        <button class="primary-btn" id="send-otp-btn" onclick="sendOtp()">Send OTP via SMS</button>
+      </div>
+
+      <!-- Step 2: OTP Verification -->
+      <div id="phone-step-2" style="display: none;">
+        <p class="modal-hint">Mobile inbox me aaya 6-digit OTP darj karein</p>
+        <input type="text" id="auth-otp" maxlength="6" placeholder="Enter 6-Digit OTP">
+        <button class="primary-btn" id="verify-otp-btn" onclick="verifyOtp()">Verify OTP</button>
+        <button class="nav-btn" style="width: 100%; margin-top: 8px; background: transparent; color: #64748b;" onclick="resetOtpStep()">Number Badlein</button>
+      </div>
     </div>
   </div>
 
@@ -92,43 +114,43 @@
     <div class="modal-content">
       <span class="close" onclick="closeProfileModal()">&times;</span>
       <h3>👤 Customer Profile</h3>
-      <p class="modal-desc">Apna delivery address bharein</p>
+      <p class="modal-hint">Delivery address set karein</p>
       <input type="text" id="prof-name" placeholder="Full Name">
-      <input type="text" id="prof-phone" readonly class="readonly-input">
+      <input type="text" id="prof-phone" readonly class="readonly-field">
       <input type="text" id="prof-house" placeholder="House / Flat / Gali No.">
       <input type="text" id="prof-city" placeholder="City / District">
       <textarea id="prof-address" rows="3" placeholder="Full Street Address & Landmark"></textarea>
-      <button class="primary-btn" onclick="saveProfile()">Save Details</button>
+      <button class="primary-btn" onclick="saveProfile()">Save Address</button>
     </div>
   </div>
 
   <!-- Cart Modal -->
   <div id="cart-modal" class="modal">
-    <div class="modal-content modal-large">
+    <div class="modal-content modal-lg">
       <span class="close" onclick="document.getElementById('cart-modal').style.display='none'">&times;</span>
       <h3>🛍️ Shopping Cart</h3>
-      <div id="cart-items" class="cart-scroll-area"></div>
-      <div class="cart-total-bar">Total: ₹<span id="cart-total">0</span></div>
-      <button class="primary-btn checkout" onclick="checkout()">Proceed to Checkout (COD)</button>
+      <div id="cart-items" class="cart-body-area"></div>
+      <div class="cart-total-box">Total: ₹<span id="cart-total">0</span></div>
+      <button class="primary-btn checkout" onclick="checkout()">Place Order (Cash On Delivery)</button>
     </div>
   </div>
 
   <!-- Orders Modal -->
   <div id="orders-modal" class="modal">
-    <div class="modal-content modal-large">
+    <div class="modal-content modal-lg">
       <span class="close" onclick="document.getElementById('orders-modal').style.display='none'">&times;</span>
       <h3>📦 My Orders</h3>
-      <div id="my-orders-list" class="orders-scroll-area"></div>
+      <div id="my-orders-list" class="orders-body-area"></div>
     </div>
   </div>
 
   <!-- Support Chat Modal -->
   <div id="chat-modal" class="modal">
-    <div class="modal-content chat-box-modal">
+    <div class="modal-content chat-box">
       <span class="close" onclick="document.getElementById('chat-modal').style.display='none'">&times;</span>
       <h3>💬 Customer Support</h3>
       <div class="chat-messages" id="chat-messages"></div>
-      <div class="chat-input-row">
+      <div class="chat-input-box">
         <input type="text" id="chat-input" placeholder="Type query...">
         <button class="primary-btn" onclick="sendChatMessage()">Send</button>
       </div>
