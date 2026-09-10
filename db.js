@@ -58,6 +58,8 @@ const orderSchema = new mongoose.Schema({
   items: Array,
   total: { type: Number, required: true },
   delivered: { type: Boolean, default: false },
+  deliveredDate: { type: String, default: "" }, // YYYY-MM-DD format calendar ke liye
+  deliveredTimestamp: { type: String, default: "" },
   date: { type: String, default: () => new Date().toLocaleString() }
 });
 

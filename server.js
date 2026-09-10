@@ -121,7 +121,6 @@ app.post('/api/admin/login', async (req, res) => {
 
 // App & Admin APIs
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html')));
 
 app.get('/api/banner', async (req, res) => res.json(await Banner.findOne() || {}));
 app.post('/api/banner', async (req, res) => {
@@ -178,6 +177,7 @@ app.delete('/api/products/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// Orders APIs
 app.post('/api/checkout', async (req, res) => {
   const { customer, cart } = req.body;
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
@@ -191,19 +191,32 @@ app.post('/api/checkout', async (req, res) => {
   });
   res.json({ success: true, orderId: order.orderId });
 });
+
 app.get('/api/orders', async (req, res) => res.json(await Order.find().sort({ _id: -1 })));
+
 app.post('/api/orders/toggle-delivery', async (req, res) => {
   const order = await Order.findOne({ orderId: req.body.orderId });
   if (order) {
     order.delivered = !order.delivered;
+    if (order.delivered) {
+      const now = new Date();
+      // YYYY-MM-DD format
+      order.deliveredDate = now.toISOString().split('T')[0];
+      order.deliveredTimestamp = now.toLocaleString();
+    } else {
+      order.deliveredDate = "";
+      order.deliveredTimestamp = "";
+    }
     await order.save();
   }
-  res.json({ success: true });
+  res.json({ success: true, delivered: order ? order.delivered : false });
 });
+
 app.get('/api/orders/my-orders', async (req, res) => {
   res.json(await Order.find({ customerId: req.query.customerId }).sort({ _id: -1 }));
 });
 
+// Support Messages
 app.get('/api/support/messages', async (req, res) => {
   const filter = req.query.customerId ? { customerId: req.query.customerId } : {};
   res.json(await Message.find(filter).sort({ _id: 1 }));
@@ -213,7 +226,7 @@ app.post('/api/support/send', async (req, res) => {
   res.json({ success: true });
 });
 
-// Admin fallback (sirf non-static requests ke liye)
+// Dedicated Clean Admin Route (Static files intact)
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
 });
