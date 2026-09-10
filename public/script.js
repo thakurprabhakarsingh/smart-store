@@ -1,13 +1,12 @@
 // ==================== FIREBASE CONFIGURATION ==================== //
 const firebaseConfig = {
-  apiKey: "AIzaSyBAYIUZIvEJ4Qef2TuG8NrZcpPKLyuR6F0",
+  apiKey: "AIzaSyBAyIUZIvEJ4Qef2TuG8NrZcpPKLyuR6F0",
   authDomain: "smartstore-auth.firebaseapp.com",
   projectId: "smartstore-auth",
   storageBucket: "smartstore-auth.firebasestorage.app",
   messagingSenderId: "10479269367",
   appId: "1:10479269367:web:76be3bc01aa43804e96af2"
 };
-
 // Initialize Firebase
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
