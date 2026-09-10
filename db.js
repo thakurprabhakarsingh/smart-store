@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://adminuser:Adminpass123@cluster0.lmultuc.mongodb.net/ecomarce_db?retryWrites=true&w=majority&appName=Cluster0";
+
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(MONGO_URI, {
@@ -14,24 +15,29 @@ const connectDB = async () => {
   }
 };
 
-// 1. Admin Schema
+const userSchema = new mongoose.Schema({
+  phone: { type: String, required: true, unique: true },
+  name: { type: String, default: "" },
+  houseNo: { type: String, default: "" },
+  city: { type: String, default: "" },
+  address: { type: String, default: "" },
+  profileCompleted: { type: Boolean, default: false }
+});
+
 const adminSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true }
 });
 
-// 2. Banner Schema
 const bannerSchema = new mongoose.Schema({
   imageUrl: { type: String, required: true },
   title: { type: String, default: "" }
 });
 
-// 3. Category Schema
 const categorySchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true }
 });
 
-// 4. Product Schema
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
@@ -39,7 +45,6 @@ const productSchema = new mongoose.Schema({
   image: { type: String, required: true }
 });
 
-// 5. Order Schema
 const orderSchema = new mongoose.Schema({
   orderId: { type: String, required: true, unique: true },
   customerId: { type: String, required: true },
@@ -47,7 +52,8 @@ const orderSchema = new mongoose.Schema({
     name: { type: String, required: true },
     phone: { type: String, required: true },
     address: { type: String, required: true },
-    email: { type: String, default: "" }
+    houseNo: { type: String, default: "" },
+    city: { type: String, default: "" }
   },
   items: Array,
   total: { type: Number, required: true },
@@ -55,7 +61,6 @@ const orderSchema = new mongoose.Schema({
   date: { type: String, default: () => new Date().toLocaleString() }
 });
 
-// 6. Support Message Schema
 const messageSchema = new mongoose.Schema({
   customerId: { type: String, required: true },
   customerName: { type: String, default: "Customer" },
@@ -64,6 +69,7 @@ const messageSchema = new mongoose.Schema({
   time: { type: String, default: () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
 });
 
+const User = mongoose.model('User', userSchema);
 const Admin = mongoose.model('Admin', adminSchema);
 const Banner = mongoose.model('Banner', bannerSchema);
 const Category = mongoose.model('Category', categorySchema);
@@ -71,4 +77,4 @@ const Product = mongoose.model('Product', productSchema);
 const Order = mongoose.model('Order', orderSchema);
 const Message = mongoose.model('Message', messageSchema);
 
-module.exports = { connectDB, Admin, Banner, Category, Product, Order, Message };
+module.exports = { connectDB, User, Admin, Banner, Category, Product, Order, Message };

@@ -1,53 +1,45 @@
 <!DOCTYPE html>
 <html lang="hi">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Portal - Clean Dashboard</title>
-  <link rel="stylesheet" href="admin.css">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-  <!-- Auth Screen -->
-  <div id="auth-wrapper" class="auth-card">
-    <div class="auth-tabs">
-      <button id="tab-login-btn" class="active" onclick="switchAuthTab('login')">Admin Login</button>
-      <button id="tab-reg-btn" onclick="switchAuthTab('register')">Register Admin</button>
+  <!-- Admin Auth Box -->
+  <div id="auth-box" class="auth-card">
+    <h2 id="auth-title">Admin Login</h2>
+    <div id="reg-secret-field" style="display: none;">
+      <input type="password" id="admin-secret" placeholder="Admin Secret Key (Default: ADMINSECRET)">
     </div>
-
-    <div id="login-form">
-      <input type="text" id="admin-user" placeholder="Admin Username">
-      <input type="password" id="admin-pass" placeholder="Admin Password">
-      <button class="primary-btn" onclick="adminLogin()">Login</button>
-    </div>
-
-    <div id="reg-form" style="display: none;">
-      <input type="text" id="reg-user" placeholder="Choose Username">
-      <input type="password" id="reg-pass" placeholder="Choose Password">
-      <input type="password" id="reg-secret" placeholder="Admin Secret Key (ADMINSECRET)">
-      <button class="primary-btn" onclick="adminRegister()">Register Admin</button>
+    <input type="text" id="admin-user" placeholder="Username">
+    <input type="password" id="admin-pass" placeholder="Password">
+    
+    <button class="primary-btn blue" id="auth-submit-btn" onclick="loginAdmin()">Login</button>
+    <div class="auth-toggle">
+      <a href="javascript:void(0)" id="auth-toggle-link" onclick="toggleAdminAuthMode()">Naya Admin Register Karein</a>
     </div>
   </div>
 
-  <!-- Main Dashboard -->
+  <!-- Admin Main Dashboard -->
   <div id="dashboard" style="display: none;">
-    <header>
-      <h2>⚙️ Admin Control Panel</h2>
-      <button class="logout-btn" onclick="adminLogout()">Logout</button>
-    </header>
+    <div class="top-nav">
+      <div class="brand">⚙️ Admin Panel</div>
+      <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
+    </div>
 
-    <!-- Clean Navigation Tabs -->
-    <nav class="admin-nav-tabs">
-      <button class="nav-tab active" onclick="switchSection('products-sec', this)">📦 Products Inventory</button>
-      <button class="nav-tab" onclick="switchSection('orders-sec', this)">🛒 Orders List</button>
-      <button class="nav-tab" onclick="switchSection('chat-sec', this)">💬 Support Chat</button>
-      <button class="nav-tab" onclick="switchSection('banner-sec', this)">🖼️ Banner & Categories</button>
-    </nav>
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchSection('products-sec', this)">Products</button>
+      <button class="tab-btn" onclick="switchSection('categories-sec', this)">Categories</button>
+      <button class="tab-btn" onclick="switchSection('banner-sec', this)">Banner</button>
+      <button class="tab-btn" onclick="switchSection('orders-sec', this)">Orders</button>
+      <button class="tab-btn" onclick="switchSection('messages-sec', this)">Support Chat</button>
+    </div>
 
     <div class="container">
-
       <!-- Section 1: Products -->
       <section id="products-sec" class="admin-section active">
         <div class="card">
@@ -59,32 +51,27 @@
             <input type="text" id="prod-name" placeholder="Product Name">
             <input type="number" id="prod-price" placeholder="Price (₹)">
             <select id="prod-category"></select>
+
             <!-- Gallery & Camera Upload Inputs -->
             <div style="margin: 10px 0;">
               <label style="font-weight: 600; font-size: 13px; color: #475569;">Select Product Image:</label>
               <div style="display: flex; gap: 10px; margin-top: 6px;">
-                <!-- Gallery Input -->
-                <label
-                  style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                <label style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
                   🖼️ Gallery se Chunein
-                  <input type="file" id="prod-file-gallery" accept="image/*" style="display: none;"
-                    onchange="handleImageSelection(event)">
+                  <input type="file" id="prod-file-gallery" accept="image/*" style="display: none;" onchange="handleImageSelection(event)">
                 </label>
-                <!-- Camera Input (Mobile capture) -->
-                <label
-                  style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                <label style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
                   📷 Camera se Khinchein
-                  <input type="file" id="prod-file-camera" accept="image/*" capture="environment" style="display: none;"
-                    onchange="handleImageSelection(event)">
+                  <input type="file" id="prod-file-camera" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelection(event)">
                 </label>
               </div>
             </div>
 
             <!-- Preview Image -->
             <div id="image-preview-wrapper" style="display: none; margin: 10px 0; text-align: center;">
-              <img id="prod-img-preview" src="" alt="Preview"
-                style="max-height: 120px; border-radius: 8px; border: 1px solid #cbd5e1;">
+              <img id="prod-img-preview" src="" alt="Preview" style="max-height: 120px; border-radius: 8px; border: 1px solid #cbd5e1;">
             </div>
+
             <button class="primary-btn green" onclick="addProduct()">Publish Product</button>
           </div>
         </div>
@@ -92,54 +79,52 @@
         <div class="card">
           <div class="section-header-row">
             <h3>📦 All Added Products</h3>
-            <input type="text" id="admin-search-input" placeholder="🔍 Search product in inventory..."
-              oninput="filterAdminProducts()">
+            <input type="text" id="admin-search-input" placeholder="🔍 Search product in inventory..." oninput="filterAdminProducts()">
           </div>
           <div id="admin-products-list"></div>
         </div>
       </section>
 
-      <!-- Section 2: Orders -->
+      <!-- Section 2: Categories -->
+      <section id="categories-sec" class="admin-section">
+        <div class="card">
+          <h3>➕ Manage Categories</h3>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="new-category-input" placeholder="New Category Name">
+            <button class="primary-btn blue" style="width: 140px;" onclick="addCategory()">Add</button>
+          </div>
+          <div id="category-list" style="margin-top: 15px;"></div>
+        </div>
+      </section>
+
+      <!-- Section 3: Banner -->
+      <section id="banner-sec" class="admin-section">
+        <div class="card">
+          <h3>🖼️ Update Store Offer Banner</h3>
+          <input type="text" id="banner-img-url" placeholder="Banner Image URL">
+          <input type="text" id="banner-title" placeholder="Banner Heading/Offer Text">
+          <button class="primary-btn blue" onclick="updateBanner()">Save Banner</button>
+        </div>
+      </section>
+
+      <!-- Section 4: Orders -->
       <section id="orders-sec" class="admin-section">
         <div class="card">
-          <h3>🛒 Customer Orders</h3>
-          <p style="font-size: 13px; color: #64748b;">Click on any order to view details & status.</p>
+          <h3>📦 Customer Orders</h3>
           <div id="orders-list"></div>
         </div>
       </section>
 
-      <!-- Section 3: Support Chat -->
-      <section id="chat-sec" class="admin-section">
+      <!-- Section 5: Support Messages -->
+      <section id="messages-sec" class="admin-section">
         <div class="card">
-          <h3>💬 Customer Support Desk</h3>
-          <p style="font-size: 13px; color: #64748b;">Click customer inquiry to open message thread.</p>
-          <div id="admin-support-list"></div>
+          <h3>💬 Customer Queries</h3>
+          <div id="messages-list"></div>
         </div>
       </section>
-
-      <!-- Section 4: Banner & Categories -->
-      <section id="banner-sec" class="admin-section">
-        <div class="card">
-          <h3>🖼️ Offer Banner Settings</h3>
-          <input type="text" id="banner-img" placeholder="Banner Image URL">
-          <input type="text" id="banner-text" placeholder="Banner Caption/Title">
-          <button class="primary-btn" onclick="saveBanner()">Update Banner</button>
-        </div>
-
-        <div class="card">
-          <h3>🏷️ Store Categories</h3>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="new-category" placeholder="New Category Name">
-            <button class="primary-btn" style="width: auto;" onclick="addCategory()">Add Category</button>
-          </div>
-          <div id="admin-category-chips" class="cat-chips-list"></div>
-        </div>
-      </section>
-
     </div>
   </div>
 
   <script src="admin.js"></script>
 </body>
-
 </html>

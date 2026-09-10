@@ -3,117 +3,126 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Store - Customer Portal</title>
+  <title>Smart Store - Shopping Portal</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Top Navigation -->
+  <!-- Header -->
   <header>
-    <div class="logo-area">
-      <h1>🛍️ Smart Store</h1>
-    </div>
-
-    <!-- Search Bar -->
+    <div class="brand">🛒 SmartStore</div>
     <div class="search-bar-wrap">
-      <input type="text" id="search-input" placeholder="🔍 Search products by name or category..." oninput="handleSearch()">
+      <input type="text" id="search-input" placeholder="🔍 Search products..." oninput="handleSearch()">
     </div>
-
-    <div class="nav-right">
-      <div id="user-pill" class="user-pill" style="display: none;">
-        <span id="user-display-name">User</span>
-        <button class="small-btn" onclick="openMyOrders()">My Orders</button>
-        <button class="small-btn red" onclick="logoutCustomer()">Logout</button>
-      </div>
-      <button id="auth-btn" class="nav-btn" onclick="openAuthModal()">👤 Login / Register</button>
-      <button class="cart-btn" onclick="toggleCart()">🛒 Cart (<span id="cart-count">0</span>)</button>
+    <div class="header-right" id="user-header-status">
+      <button class="nav-btn" onclick="openAuthModal()">Login</button>
     </div>
   </header>
 
-  <!-- Banner Section -->
-  <div class="banner-container" id="banner-container">
+  <!-- Banner -->
+  <div class="banner-container">
     <div class="banner-box">
-      <img id="offer-banner-img" src="" alt="Special Offers">
-      <div class="banner-caption" id="offer-banner-title"></div>
+      <img id="offer-banner-img" src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200" alt="Banner">
+      <div class="banner-caption" id="offer-banner-title">Welcome to Smart Store</div>
     </div>
   </div>
 
-  <div class="container">
-    <!-- Category Chips -->
-    <div class="category-chips-bar" id="category-chips">
-      <!-- Injected via JS -->
-    </div>
+  <div class="container main-content">
+    <h3 class="section-title">Shop by Category</h3>
+    <div class="category-chips-bar" id="category-chips"></div>
 
-    <!-- Products Grid -->
-    <h2>Available Products</h2>
-    <div id="product-list" class="grid"></div>
+    <h3 class="section-title" style="margin-top: 25px;">Available Products</h3>
+    <div class="grid" id="product-list"></div>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <button class="b-tab active" onclick="navigateTab('home', this)">
+      <span class="icon">🏠</span>
+      <span class="lbl">Home</span>
+    </button>
+    <button class="b-tab" onclick="navigateTab('cart', this)">
+      <span class="icon">🛒 <span class="badge" id="cart-count">0</span></span>
+      <span class="lbl">Cart</span>
+    </button>
+    <button class="b-tab" onclick="navigateTab('orders', this)">
+      <span class="icon">📦</span>
+      <span class="lbl">Orders</span>
+    </button>
+    <button class="b-tab" onclick="navigateTab('profile', this)">
+      <span class="icon">👤</span>
+      <span class="lbl">Profile</span>
+    </button>
+    <button class="b-tab" onclick="navigateTab('chat', this)">
+      <span class="icon">💬</span>
+      <span class="lbl">Connect</span>
+    </button>
+  </nav>
+
+  <!-- Phone OTP Modal -->
+  <div id="auth-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeAuthModal()">&times;</span>
+      <h3>📱 Mobile Login</h3>
+      <p style="font-size: 13px; color: #64748b;">10-digit mobile number se verify karein</p>
+
+      <div id="phone-step-1">
+        <input type="tel" id="auth-phone" maxlength="10" placeholder="Enter 10-digit mobile number">
+        <button class="primary-btn" onclick="sendOtp()">Send OTP</button>
+      </div>
+
+      <div id="phone-step-2" style="display: none;">
+        <input type="text" id="auth-otp" maxlength="6" placeholder="Enter 6-digit OTP">
+        <button class="primary-btn" onclick="verifyOtp()">Verify OTP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Setup Modal -->
+  <div id="profile-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeProfileModal()">&times;</span>
+      <h3>👤 Customer Profile</h3>
+      <p style="font-size: 13px; color: #64748b;">Apna delivery address save karein</p>
+      <input type="text" id="prof-name" placeholder="Full Name">
+      <input type="text" id="prof-phone" readonly style="background: #f1f5f9;">
+      <input type="text" id="prof-house" placeholder="House / Flat / Gali No.">
+      <input type="text" id="prof-city" placeholder="City / District">
+      <textarea id="prof-address" rows="3" placeholder="Complete Street Address & Landmark"></textarea>
+      <button class="primary-btn checkout" onclick="saveProfile()">Save Profile</button>
+    </div>
   </div>
 
   <!-- Cart Modal -->
   <div id="cart-modal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="toggleCart()">&times;</span>
-      <h2>Aapka Cart</h2>
+      <span class="close" onclick="document.getElementById('cart-modal').style.display='none'">&times;</span>
+      <h3>🛍️ Your Shopping Cart</h3>
       <div id="cart-items"></div>
-      <h3>Total: ₹<span id="cart-total">0</span></h3>
-      <hr>
-      <h3>Delivery Address Details</h3>
-      <input type="text" id="cust-name" placeholder="Aapka Poora Naam" required>
-      <input type="tel" id="cust-phone" placeholder="Mobile Number" required>
-      <textarea id="cust-address" placeholder="Ghar ka Pata, City, Pincode" required></textarea>
-      <button class="primary-btn checkout" onclick="checkout()">Confirm Order</button>
+      <div style="font-weight: bold; font-size: 17px; margin: 15px 0;">Total: ₹<span id="cart-total">0</span></div>
+      <button class="primary-btn checkout" onclick="checkout()">Proceed to Checkout</button>
     </div>
   </div>
 
-  <!-- Customer Auth Modal (Google & Phone OTP) -->
-  <div id="auth-modal" class="modal">
-    <div class="modal-content auth-modal-box">
-      <span class="close" onclick="closeAuthModal()">&times;</span>
-      <h2>Customer Login / Register</h2>
-      
-      <!-- Google Auth Button -->
-      <button class="google-btn" onclick="loginWithGoogle()">
-        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
-        Continue with Google
-      </button>
-
-      <div class="or-separator"><span>OR LOGIN VIA PHONE</span></div>
-
-      <!-- Phone Number Login Section -->
-      <div id="phone-step-1">
-        <input type="tel" id="auth-phone" placeholder="Enter 10-digit Phone Number">
-        <button class="primary-btn" onclick="sendOtp()">Send OTP</button>
-      </div>
-
-      <div id="phone-step-2" style="display: none;">
-        <p style="font-size: 13px; color: #64748b;">Dummy OTP <b>1234</b> has been sent.</p>
-        <input type="text" id="auth-otp" placeholder="Enter OTP (Use 1234)">
-        <input type="text" id="auth-user-name" placeholder="Your Name">
-        <button class="primary-btn" onclick="verifyOtp()">Verify & Login</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- My Orders Modal -->
+  <!-- Orders Modal -->
   <div id="orders-modal" class="modal">
-    <div class="modal-content" style="max-width: 600px;">
-      <span class="close" onclick="closeMyOrders()">&times;</span>
-      <h2>📦 My Order History</h2>
+    <div class="modal-content">
+      <span class="close" onclick="document.getElementById('orders-modal').style.display='none'">&times;</span>
+      <h3>📦 My Orders</h3>
       <div id="my-orders-list"></div>
     </div>
   </div>
 
-  <!-- Floating Live Support Chat Box -->
-  <div class="chat-floating-btn" onclick="toggleChat()">💬 Support</div>
-  <div class="chat-widget" id="chat-widget">
-    <div class="chat-header">
-      <span>Customer Support Helpdesk</span>
-      <span class="chat-close" onclick="toggleChat()">&times;</span>
-    </div>
-    <div class="chat-messages" id="chat-messages"></div>
-    <div class="chat-input-area">
-      <input type="text" id="chat-input" placeholder="Type your issue..." onkeypress="if(event.key==='Enter') sendChatMessage()">
-      <button onclick="sendChatMessage()">Send</button>
+  <!-- Connect / Support Modal -->
+  <div id="chat-modal" class="modal">
+    <div class="modal-content" style="height: 480px; display: flex; flex-direction: column;">
+      <span class="close" onclick="document.getElementById('chat-modal').style.display='none'">&times;</span>
+      <h3>💬 Customer Support</h3>
+      <div class="chat-messages" id="chat-messages" style="flex: 1; overflow-y: auto; background: #f8fafc; padding: 10px; border-radius: 8px;"></div>
+      <div style="display: flex; gap: 8px; margin-top: 10px;">
+        <input type="text" id="chat-input" placeholder="Type query...">
+        <button class="primary-btn" style="width: auto;" onclick="sendChatMessage()">Send</button>
+      </div>
     </div>
   </div>
 
