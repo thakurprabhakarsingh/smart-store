@@ -49,6 +49,7 @@ app.post('/api/auth/send-fast-otp', async (req, res) => {
     });
 
     const result = await response.json();
+    console.log('Fast2SMS Raw Response:', result);
 
     if (result.return === true) {
       console.log(`✅ SMS successfully delivered to SIM: ${phone}`);
@@ -57,15 +58,18 @@ app.post('/api/auth/send-fast-otp', async (req, res) => {
         message: 'OTP aapke mobile SIM par SMS ke roop me bhej diya gaya hai!'
       });
     } else {
-      console.error('Fast2SMS Error Response:', result);
+      console.error('Fast2SMS Error Details:', result);
+      const errorMsg = Array.isArray(result.message) 
+        ? result.message.join(', ') 
+        : (typeof result.message === 'string' ? result.message : 'SMS send nahi ho saka');
       res.status(400).json({
         success: false,
-        message: result.message?.[0] || 'SMS bhejne me dikkat aayi. Kripya check karein number active hai ya nahi.'
+        message: errorMsg
       });
     }
   } catch (err) {
     console.error('Fast2SMS Server Error:', err);
-    res.status(500).json({ success: false, message: 'SMS gateway error, kripya thodi der me koshish karein.' });
+    res.status(500).json({ success: false, message: 'SMS gateway connection failed' });
   }
 });
 
