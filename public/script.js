@@ -1,32 +1,3 @@
-// ==================== FIREBASE CONFIGURATION ==================== //
-const firebaseConfig = {
-  apiKey: "AIzaSyBAYIUZIvEJ4Qef2TuG8NrZcpPKLyuR6F0",
-  authDomain: "smartstore-auth.firebaseapp.com",
-  projectId: "smartstore-auth",
-  storageBucket: "smartstore-auth.firebasestorage.app",
-  messagingSenderId: "10479269367",
-  appId: "1:10479269367:web:76be3bc01aa43804e96af2"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-let confirmationResultGlobal = null;
-
-function setupRecaptcha() {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-      size: 'invisible',
-      callback: () => {},
-      'expired-callback': () => {
-        if (window.recaptchaVerifier) {
-          window.recaptchaVerifier.clear();
-          window.recaptchaVerifier = null;
-        }
-      }
-    });
-  }
-}
-
 // ==================== APP STATE ==================== //
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -43,19 +14,16 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProducts();
 });
 
-// ==================== AUTH / MODAL HANDLING ==================== //
+// ==================== AUTH & LOGIN ==================== //
 function openAuthModal() {
   if (currentUser) {
-    if (confirm("Logout karna chahte hain?")) {
-      auth.signOut();
+    if (confirm("Kya aap logout karna chahte hain?")) {
       localStorage.removeItem('currentUser');
       currentUser = null;
       renderUserStatus();
       location.reload();
     }
   } else {
-    document.getElementById('phone-step-1').style.display = 'block';
-    document.getElementById('phone-step-2').style.display = 'none';
     document.getElementById('auth-phone').value = '';
     document.getElementById('auth-modal').style.display = 'flex';
   }
@@ -89,61 +57,23 @@ function renderUserStatus() {
   }
 }
 
-// Firebase SMS OTP Send
-async function sendOtp() {
+// Direct Instant Mobile Login
+async function directLogin() {
   const phone = document.getElementById('auth-phone').value.trim();
   if (!/^[6-9]\d{9}$/.test(phone)) {
-    alert("Kripya 10-digit valid Indian mobile number enter karein!");
+    alert("Kripya 10-digit valid mobile number enter karein!");
     return;
   }
 
-  const btn = document.getElementById('send-otp-btn');
+  const btn = document.getElementById('login-btn');
   btn.disabled = true;
-  btn.innerText = "OTP bhej rahe hain...";
+  btn.innerText = "Logging in...";
 
   try {
-    setupRecaptcha();
-    const appVerifier = window.recaptchaVerifier;
-    confirmationResultGlobal = await auth.signInWithPhoneNumber('+91' + phone, appVerifier);
-    
-    alert("OTP aapke mobile inbox par bhej diya gaya hai!");
-    document.getElementById('phone-step-1').style.display = 'none';
-    document.getElementById('phone-step-2').style.display = 'block';
-  } catch (err) {
-    console.error("Firebase SMS Send Error:", err);
-    alert("OTP nahi bheja ja saka: " + err.message);
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
-    }
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Send OTP";
-  }
-}
-
-// Firebase Verify OTP & Mongo Sync
-async function verifyOtp() {
-  const otp = document.getElementById('auth-otp').value.trim();
-  const phone = document.getElementById('auth-phone').value.trim();
-
-  if (!otp || otp.length !== 6) {
-    alert("Kripya 6-digit OTP enter karein!");
-    return;
-  }
-
-  const btn = document.getElementById('verify-otp-btn');
-  btn.disabled = true;
-  btn.innerText = "Verifying...";
-
-  try {
-    const confirmation = await confirmationResultGlobal.confirm(otp);
-    const firebaseUser = confirmation.user;
-
-    const res = await fetch('/api/auth/firebase-login', {
+    const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone, uid: firebaseUser.uid })
+      body: JSON.stringify({ phone })
     });
 
     const data = await res.json();
@@ -158,13 +88,15 @@ async function verifyOtp() {
       } else {
         alert("Login safal raha!");
       }
+    } else {
+      alert(data.message || "Login me samasya aayi!");
     }
   } catch (err) {
-    console.error("OTP Verification Error:", err);
-    alert("Galat OTP ya expired code!");
+    console.error("Login Error:", err);
+    alert("Server error, kripya dubara koshish karein!");
   } finally {
     btn.disabled = false;
-    btn.innerText = "Verify OTP";
+    btn.innerText = "Login / Register";
   }
 }
 
@@ -190,13 +122,13 @@ async function saveProfile() {
   if (data.success) {
     currentUser = data.user;
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    alert("Profile update ho gaya!");
+    alert("Profile safaltapoorvak update ho gaya!");
     closeProfileModal();
     renderUserStatus();
   }
 }
 
-// ==================== NAVIGATION TABS ==================== //
+// ==================== BOTTOM NAVIGATION ==================== //
 function navigateTab(tab, element) {
   document.querySelectorAll('.b-tab').forEach(b => b.classList.remove('active'));
   if (element) element.classList.add('active');
@@ -215,14 +147,14 @@ function navigateTab(tab, element) {
   }
 }
 
-// ==================== BANNERS & CAROUSEL ==================== //
+// ==================== BANNERS SLIDER ==================== //
 async function loadBanners() {
   try {
     const res = await fetch('/api/banners');
     banners = await res.json();
     const slider = document.getElementById('carousel-slider');
     const dots = document.getElementById('carousel-dots');
-    if (!banners.length) return;
+    if (!banners || !banners.length) return;
 
     slider.innerHTML = banners.map(b => `<img src="${b.imageUrl}" class="carousel-item" alt="Banner">`).join('');
     dots.innerHTML = banners.map((_, i) => `<span class="dot ${i === 0 ? 'active' : ''}" onclick="setSlide(${i})"></span>`).join('');
@@ -232,7 +164,7 @@ async function loadBanners() {
       updateSlidePosition();
     }, 3500);
   } catch (e) {
-    console.error("Banner load error:", e);
+    console.error("Banner error:", e);
   }
 }
 
@@ -243,7 +175,9 @@ function setSlide(i) {
 
 function updateSlidePosition() {
   const slider = document.getElementById('carousel-slider');
-  slider.style.transform = `translateX(-${bannerIndex * 100}%)`;
+  if (slider) {
+    slider.style.transform = `translateX(-${bannerIndex * 100}%)`;
+  }
   document.querySelectorAll('.carousel-dots .dot').forEach((dot, idx) => {
     dot.classList.toggle('active', idx === bannerIndex);
   });
@@ -285,7 +219,7 @@ async function loadBestDeals() {
       list.innerHTML = deals.map(p => `
         <div class="deal-card">
           <span class="deal-badge">🔥 Deal</span>
-          <img src="${p.image}" alt="${p.name}">
+          <img src="${p.image || 'https://via.placeholder.com/150'}" alt="${p.name}">
           <h4>${p.name}</h4>
           <div class="price">₹${p.price}</div>
           <button class="primary-btn" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, '${p.image}')">Add to Cart</button>
@@ -295,7 +229,7 @@ async function loadBestDeals() {
       wrapper.style.display = 'none';
     }
   } catch (e) {
-    console.error("Deals load error:", e);
+    console.error("Deals error:", e);
   }
 }
 
@@ -314,14 +248,14 @@ async function loadProducts(query = '') {
 
     list.innerHTML = products.map(p => `
       <div class="product-card">
-        <img src="${p.image}" alt="${p.name}">
+        <img src="${p.image || 'https://via.placeholder.com/150'}" alt="${p.name}">
         <h4>${p.name}</h4>
         <div class="price">₹${p.price}</div>
         <button class="primary-btn" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, '${p.image}')">Add to Cart</button>
       </div>
     `).join('');
   } catch (e) {
-    console.error("Product load error:", e);
+    console.error("Product error:", e);
   }
 }
 
@@ -427,7 +361,7 @@ async function checkout() {
   }
 }
 
-// ==================== ORDERS & CHAT MODAL ==================== //
+// ==================== ORDERS & SUPPORT CHAT ==================== //
 async function openOrdersModal() {
   if (!currentUser) {
     alert("Pehle login karein!");
@@ -447,9 +381,9 @@ async function openOrdersModal() {
       return;
     }
     list.innerHTML = orders.map(o => `
-      <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-bottom:10px;">
+      <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-bottom:10px; border-left: 4px solid #2563eb;">
         <div style="font-weight:bold;">Order ID: ${o.orderId}</div>
-        <div style="font-size:13px; color:#64748b;">Total: ₹${o.total} | Status: ${o.delivered ? 'Delivered' : 'Processing'}</div>
+        <div style="font-size:13px; color:#64748b;">Total: ₹${o.total} | Status: ${o.delivered ? '✅ Delivered' : '⏳ Processing'}</div>
       </div>
     `).join('');
   } catch (e) {

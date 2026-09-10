@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Store - Shopping Portal</title>
   <link rel="stylesheet" href="style.css">
-
-  <!-- Firebase App & Auth SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -69,24 +65,15 @@
     </button>
   </nav>
 
-  <!-- Phone OTP Modal -->
+  <!-- Simple Mobile Login Modal (No OTP) -->
   <div id="auth-modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeAuthModal()">&times;</span>
       <h3>📱 Mobile Login</h3>
-      <p style="font-size: 13px; color: #64748b;">10-digit mobile number se verify karein</p>
-
-      <!-- Invisible reCAPTCHA container -->
-      <div id="recaptcha-container"></div>
-
-      <div id="phone-step-1">
+      <p style="font-size: 13px; color: #64748b;">10-digit mobile number se login karein</p>
+      <div>
         <input type="tel" id="auth-phone" maxlength="10" placeholder="Enter 10-digit mobile number">
-        <button class="primary-btn" id="send-otp-btn" onclick="sendOtp()">Send OTP</button>
-      </div>
-
-      <div id="phone-step-2" style="display: none;">
-        <input type="text" id="auth-otp" maxlength="6" placeholder="Enter 6-digit OTP">
-        <button class="primary-btn" id="verify-otp-btn" onclick="verifyOtp()">Verify OTP</button>
+        <button class="primary-btn" id="login-btn" onclick="directLogin()">Login / Register</button>
       </div>
     </div>
   </div>

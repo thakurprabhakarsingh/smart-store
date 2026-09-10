@@ -13,8 +13,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
-// ---------------- FIREBASE SYNC & USER AUTH ROUTES ---------------- //
-app.post('/api/auth/firebase-login', async (req, res) => {
+// ---------------- USER DIRECT AUTH ROUTES ---------------- //
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai!' });
@@ -25,7 +25,6 @@ app.post('/api/auth/firebase-login', async (req, res) => {
     }
     res.json({ success: true, user });
   } catch (err) {
-    console.error("Firebase Login Sync Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
