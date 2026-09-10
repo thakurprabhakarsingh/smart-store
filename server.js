@@ -13,12 +13,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
-// ---------------- FAST2SMS REAL SIM OTP AUTH ---------------- //
+// ---------------- WHATSAPP OTP AUTH (UltraMsg) ---------------- //
 const otpStorage = {}; // { "9876543210": { otp: "458921", expires: timestamp } }
 
-const FAST2SMS_API_KEY = process.env.FAST2SMS_KEY || 'vjbDcd6O3z1mRgCFYJypGr4ZPsuNxME7hot08Ql2AikfIHWq5UqdfQZz9Mnei0mrIBERHtDgNWksXKob';
+// UltraMsg Credentials
+const WHATSAPP_INSTANCE_ID = process.env.WHATSAPP_INSTANCE || 'instance191203';
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || 'nz56bhlk8mb7zsdj';
 
-// Step 1: Send Real SMS OTP to User's SIM
+// Step 1: Send WhatsApp OTP
 app.post('/api/auth/send-fast-otp', async (req, res) => {
   try {
     const { phone } = req.body;
@@ -26,54 +28,50 @@ app.post('/api/auth/send-fast-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number zaroori hai!' });
     }
 
-    // 6-digit random code
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStorage[phone] = {
       otp: generatedOtp,
       expires: Date.now() + 5 * 60 * 1000 // 5 minutes validity
     };
 
-    console.log(`📡 Sending Fast2SMS OTP to ${phone}...`);
+    console.log(`📱 Sending WhatsApp OTP to ${phone}...`);
 
-    const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+    const messageText = `🔐 Aapka SmartStore verification code hai: *${generatedOtp}*. Yeh code agle 5 minute tak valid hai.`;
+    const recipient = `91${phone}@c.us`; // Indian country code prefix
+
+    const response = await fetch(`https://api.ultramsg.com/${WHATSAPP_INSTANCE_ID}/messages/chat`, {
       method: 'POST',
-      headers: {
-        'authorization': FAST2SMS_API_KEY,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        route: 'otp',
-        variables_values: generatedOtp,
-        numbers: phone
+        token: WHATSAPP_TOKEN,
+        to: recipient,
+        body: messageText
       })
     });
 
     const result = await response.json();
-    console.log('Fast2SMS Raw Response:', result);
+    console.log('WhatsApp API Response:', result);
 
-    if (result.return === true) {
-      console.log(`✅ SMS successfully delivered to SIM: ${phone}`);
+    if (result.sent === 'true' || result.sent === true || result.id) {
+      console.log(`✅ WhatsApp OTP sent successfully to ${phone}`);
       res.json({
         success: true,
-        message: 'OTP aapke mobile SIM par SMS ke roop me bhej diya gaya hai!'
+        message: 'WhatsApp par OTP bhej diya gaya hai!'
       });
     } else {
-      console.error('Fast2SMS Error Details:', result);
-      const errorMsg = Array.isArray(result.message) 
-        ? result.message.join(', ') 
-        : (typeof result.message === 'string' ? result.message : 'SMS send nahi ho saka');
+      console.error('UltraMsg Send Error:', result);
       res.status(400).json({
         success: false,
-        message: errorMsg
+        message: result.error || 'WhatsApp message nahi bhej paye. Dashboard par QR scan check karein.'
       });
     }
   } catch (err) {
-    console.error('Fast2SMS Server Error:', err);
-    res.status(500).json({ success: false, message: 'SMS gateway connection failed' });
+    console.error('WhatsApp API Server Error:', err);
+    res.status(500).json({ success: false, message: 'WhatsApp gateway connection failed' });
   }
 });
 
-// Step 2: Verify OTP & Login/Register
+// Step 2: Verify WhatsApp OTP
 app.post('/api/auth/verify-fast-otp', async (req, res) => {
   try {
     const { phone, otp } = req.body;
@@ -86,7 +84,7 @@ app.post('/api/auth/verify-fast-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Galat OTP ya code expire ho chuka hai!' });
     }
 
-    delete otpStorage[phone]; // Clear after successful verify
+    delete otpStorage[phone];
 
     let user = await User.findOne({ phone });
     if (!user) {
