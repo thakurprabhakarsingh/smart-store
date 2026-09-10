@@ -15,19 +15,32 @@ app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
 const otpStore = new Map();
 
+// Real SMS Delivery via Fast2SMS Quick Route
 async function sendRealSMS(phone, otp) {
   if (process.env.FAST2SMS_API_KEY) {
     try {
-      await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&variables_values=${otp}&route=otp&numbers=${phone}`);
-      return true;
+      const messageText = `Aapka SmartStore Login OTP hai: ${otp}. Kripya ise kisi se share na karein.`;
+      const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=q&message=${encodeURIComponent(messageText)}&language=english&flash=0&numbers=${phone}`;
+
+      const response = await fetch(url);
+      const result = await response.json();
+      console.log("[FAST2SMS GATEWAY RESPONSE]:", result);
+
+      if (result && result.return === true) {
+        return true;
+      } else {
+        console.error("Fast2SMS Rejection Reason:", result.message || result);
+        return false;
+      }
     } catch (e) {
-      console.error("SMS Gateway Error:", e);
+      console.error("SMS Gateway Fetch Error:", e);
+      return false;
     }
   }
   return false;
 }
 
-// ---------------- CUSTOMER AUTH ---------------- //
+// ---------------- CUSTOMER AUTH ROUTES ---------------- //
 app.post('/api/auth/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
@@ -52,7 +65,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const stored = otpStore.get(phone);
 
   if (!stored || stored.expires < Date.now()) {
-    return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai!' });
+    return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai, dubara mangwayein!' });
   }
 
   if (stored.otp !== otp) {
@@ -84,15 +97,15 @@ app.post('/api/auth/update-profile', async (req, res) => {
   res.json({ success: true, user });
 });
 
-// ---------------- ADMIN AUTH ---------------- //
+// ---------------- ADMIN AUTH ROUTES ---------------- //
 app.post('/api/admin/register', async (req, res) => {
   try {
     const { username, password, secretKey } = req.body;
-    if (!username || !password) return res.status(400).json({ success: false, message: 'Username aur password bharein!' });
+    if (!username || !password) return res.status(400).json({ success: false, message: 'Username aur password zaroori hain!' });
     if (secretKey && secretKey !== 'ADMINSECRET') return res.status(403).json({ success: false, message: 'Invalid Admin Secret Key!' });
 
     const existingAdmin = await Admin.findOne({ username });
-    if (existingAdmin) return res.status(400).json({ success: false, message: 'Username pehle se maujood hai!' });
+    if (existingAdmin) return res.status(400).json({ success: false, message: 'Yeh username pehle se maujood hai!' });
 
     const newAdmin = new Admin({ username, password });
     await newAdmin.save();
@@ -119,12 +132,11 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// ---------------- BANNERS (MULTI-BANNER SLIDER) ---------------- //
+// ---------------- MULTI-BANNER SLIDER ROUTES ---------------- //
 app.get('/api/banners', async (req, res) => {
   try {
     const banners = await Banner.find();
     if (banners.length === 0) {
-      // Default 3 sample banners
       return res.json([
         { imageUrl: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200", title: "Mega Sale - Flat 40% OFF" },
         { imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200", title: "Fresh Grocery & Daily Needs" },
@@ -156,21 +168,23 @@ app.delete('/api/banners/:id', async (req, res) => {
   }
 });
 
-// ---------------- CATEGORIES ---------------- //
+// ---------------- CATEGORY ROUTES ---------------- //
 app.get('/api/categories', async (req, res) => {
   const categories = await Category.find();
   res.json(categories.map(c => c.name));
 });
+
 app.post('/api/categories', async (req, res) => {
   await Category.create({ name: req.body.name });
   res.json({ success: true });
 });
+
 app.delete('/api/categories/:name', async (req, res) => {
   await Category.deleteOne({ name: req.params.name });
   res.json({ success: true });
 });
 
-// ---------------- PRODUCTS ---------------- //
+// ---------------- PRODUCT & BEST DEAL ROUTES ---------------- //
 app.get('/api/products', async (req, res) => {
   const { category, q, bestDeal } = req.query;
   let filter = {};
@@ -204,7 +218,7 @@ app.delete('/api/products/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-// ---------------- ORDERS ---------------- //
+// ---------------- ORDER ROUTES ---------------- //
 app.post('/api/checkout', async (req, res) => {
   const { customer, cart } = req.body;
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
@@ -242,16 +256,18 @@ app.get('/api/orders/my-orders', async (req, res) => {
   res.json(await Order.find({ customerId: req.query.customerId }).sort({ _id: -1 }));
 });
 
-// ---------------- SUPPORT ---------------- //
+// ---------------- SUPPORT MESSAGES ---------------- //
 app.get('/api/support/messages', async (req, res) => {
   const filter = req.query.customerId ? { customerId: req.query.customerId } : {};
   res.json(await Message.find(filter).sort({ _id: 1 }));
 });
+
 app.post('/api/support/send', async (req, res) => {
   await Message.create(req.body);
   res.json({ success: true });
 });
 
+// ---------------- STATIC PAGES ---------------- //
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html')));
 
