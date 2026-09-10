@@ -2,126 +2,135 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Smart Store - Shopping Portal</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
-  <!-- Header -->
-  <header>
+  <!-- 1. Top Navbar -->
+  <header class="navbar">
     <div class="brand">🛒 SmartStore</div>
     <div class="search-bar-wrap">
-      <input type="text" id="search-input" placeholder="🔍 Search products..." oninput="handleSearch()">
+      <input type="text" id="search-input" placeholder="Search products..." oninput="handleSearch()">
     </div>
     <div class="header-right" id="user-header-status">
       <button class="nav-btn" onclick="openAuthModal()">Login</button>
     </div>
   </header>
 
-  <!-- 3-Banner Auto-Sliding Carousel -->
-  <div class="carousel-container">
-    <div class="carousel-slider" id="carousel-slider"></div>
-    <div class="carousel-dots" id="carousel-dots"></div>
-  </div>
-
-  <div class="container main-content">
-    <!-- Best Deals Side Scroll -->
-    <div id="best-deals-wrapper" style="display: none;">
-      <h3 class="section-title" style="color: #dc2626;">🔥 Today's Best Deals</h3>
-      <div class="best-deals-scroll" id="best-deals-list"></div>
+  <main class="page-body">
+    <!-- 2. Full Width Auto-Sliding Banner -->
+    <div class="carousel-container">
+      <div class="carousel-slider" id="carousel-slider"></div>
+      <div class="carousel-dots" id="carousel-dots"></div>
     </div>
 
-    <!-- Categories Side Scroll -->
-    <h3 class="section-title">Shop by Category</h3>
-    <div class="category-chips-bar" id="category-chips"></div>
+    <!-- 3. Category Horizontal Scroll -->
+    <section class="section-block">
+      <h3 class="section-title">Shop by Category</h3>
+      <div class="category-chips-bar" id="category-chips"></div>
+    </section>
 
-    <!-- Products Grid -->
-    <h3 class="section-title" style="margin-top: 25px;">Available Products</h3>
-    <div class="grid" id="product-list"></div>
-  </div>
+    <!-- 4. Best Deals / Best Sellers (Side Scroll) -->
+    <section class="section-block" id="best-deals-wrapper" style="display: none;">
+      <div class="section-header-flex">
+        <h3 class="section-title text-danger">🔥 Today's Best Deals</h3>
+        <span class="scroll-hint">Swipe &rarr;</span>
+      </div>
+      <div class="best-deals-scroll" id="best-deals-list"></div>
+    </section>
 
-  <!-- Bottom Navigation Bar -->
+    <!-- 5. All Products (Grid with Vertical + Horizontal Responsiveness) -->
+    <section class="section-block">
+      <h3 class="section-title">Available Products</h3>
+      <div class="product-grid" id="product-list"></div>
+    </section>
+  </main>
+
+  <!-- 6. Fixed Bottom Navigation Bar -->
   <nav class="bottom-nav">
     <button class="b-tab active" onclick="navigateTab('home', this)">
-      <span class="icon">🏠</span>
-      <span class="lbl">Home</span>
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
     </button>
     <button class="b-tab" onclick="navigateTab('cart', this)">
-      <span class="icon">🛒 <span class="badge" id="cart-count">0</span></span>
-      <span class="lbl">Cart</span>
+      <div class="icon-wrap">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="badge" id="cart-count">0</span>
+      </div>
+      <span>Cart</span>
     </button>
     <button class="b-tab" onclick="navigateTab('orders', this)">
-      <span class="icon">📦</span>
-      <span class="lbl">Orders</span>
+      <i class="fa-solid fa-box-open"></i>
+      <span>Orders</span>
     </button>
     <button class="b-tab" onclick="navigateTab('profile', this)">
-      <span class="icon">👤</span>
-      <span class="lbl">Profile</span>
+      <i class="fa-solid fa-user"></i>
+      <span>Profile</span>
     </button>
     <button class="b-tab" onclick="navigateTab('chat', this)">
-      <span class="icon">💬</span>
-      <span class="lbl">Connect</span>
+      <i class="fa-solid fa-comments"></i>
+      <span>Connect</span>
     </button>
   </nav>
 
-  <!-- Simple Mobile Login Modal (No OTP) -->
+  <!-- Login Modal -->
   <div id="auth-modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeAuthModal()">&times;</span>
       <h3>📱 Mobile Login</h3>
-      <p style="font-size: 13px; color: #64748b;">10-digit mobile number se login karein</p>
-      <div>
-        <input type="tel" id="auth-phone" maxlength="10" placeholder="Enter 10-digit mobile number">
-        <button class="primary-btn" id="login-btn" onclick="directLogin()">Login / Register</button>
-      </div>
+      <p class="modal-desc">10-digit mobile number enter karein</p>
+      <input type="tel" id="auth-phone" maxlength="10" placeholder="Mobile Number (e.g. 9876543210)">
+      <button class="primary-btn" id="login-btn" onclick="directLogin()">Login / Register</button>
     </div>
   </div>
 
-  <!-- Profile Setup Modal -->
+  <!-- Profile Modal -->
   <div id="profile-modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeProfileModal()">&times;</span>
       <h3>👤 Customer Profile</h3>
-      <p style="font-size: 13px; color: #64748b;">Apna delivery address save karein</p>
+      <p class="modal-desc">Apna delivery address bharein</p>
       <input type="text" id="prof-name" placeholder="Full Name">
-      <input type="text" id="prof-phone" readonly style="background: #f1f5f9;">
+      <input type="text" id="prof-phone" readonly class="readonly-input">
       <input type="text" id="prof-house" placeholder="House / Flat / Gali No.">
       <input type="text" id="prof-city" placeholder="City / District">
-      <textarea id="prof-address" rows="3" placeholder="Complete Street Address & Landmark"></textarea>
-      <button class="primary-btn checkout" onclick="saveProfile()">Save Profile</button>
+      <textarea id="prof-address" rows="3" placeholder="Full Street Address & Landmark"></textarea>
+      <button class="primary-btn" onclick="saveProfile()">Save Details</button>
     </div>
   </div>
 
   <!-- Cart Modal -->
   <div id="cart-modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-large">
       <span class="close" onclick="document.getElementById('cart-modal').style.display='none'">&times;</span>
-      <h3>🛍️ Your Shopping Cart</h3>
-      <div id="cart-items"></div>
-      <div style="font-weight: bold; font-size: 17px; margin: 15px 0;">Total: ₹<span id="cart-total">0</span></div>
-      <button class="primary-btn checkout" onclick="checkout()">Proceed to Checkout</button>
+      <h3>🛍️ Shopping Cart</h3>
+      <div id="cart-items" class="cart-scroll-area"></div>
+      <div class="cart-total-bar">Total: ₹<span id="cart-total">0</span></div>
+      <button class="primary-btn checkout" onclick="checkout()">Proceed to Checkout (COD)</button>
     </div>
   </div>
 
   <!-- Orders Modal -->
   <div id="orders-modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-large">
       <span class="close" onclick="document.getElementById('orders-modal').style.display='none'">&times;</span>
       <h3>📦 My Orders</h3>
-      <div id="my-orders-list"></div>
+      <div id="my-orders-list" class="orders-scroll-area"></div>
     </div>
   </div>
 
-  <!-- Connect / Support Modal -->
+  <!-- Support Chat Modal -->
   <div id="chat-modal" class="modal">
-    <div class="modal-content" style="height: 480px; display: flex; flex-direction: column;">
+    <div class="modal-content chat-box-modal">
       <span class="close" onclick="document.getElementById('chat-modal').style.display='none'">&times;</span>
       <h3>💬 Customer Support</h3>
-      <div class="chat-messages" id="chat-messages" style="flex: 1; overflow-y: auto; background: #f8fafc; padding: 10px; border-radius: 8px;"></div>
-      <div style="display: flex; gap: 8px; margin-top: 10px;">
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-row">
         <input type="text" id="chat-input" placeholder="Type query...">
-        <button class="primary-btn" style="width: auto;" onclick="sendChatMessage()">Send</button>
+        <button class="primary-btn" onclick="sendChatMessage()">Send</button>
       </div>
     </div>
   </div>
