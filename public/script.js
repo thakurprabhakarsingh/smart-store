@@ -35,7 +35,7 @@ function navigateTab(tab, btn) {
   }
 }
 
-// ---------------- 3-BANNER SLOW & ACCURATE AUTO-SCROLL ---------------- //
+// ---------------- 1-BY-1 AUTO-SLIDER ---------------- //
 async function loadBannersSlider() {
   const res = await fetch('/api/banners');
   const banners = await res.json();
@@ -54,8 +54,7 @@ async function loadBannersSlider() {
   dotsBox.innerHTML = banners.map((_, i) => `<div class="dot ${i === 0 ? 'active' : ''}" onclick="goToBanner(${i})"></div>`).join('');
 
   function updateSliderPosition() {
-    const shiftPercent = currentBannerIndex * (100 / banners.length);
-    slider.style.transform = `translateX(-${shiftPercent}%)`;
+    slider.style.transform = `translateX(-${currentBannerIndex * 100}%)`;
     document.querySelectorAll('.dot').forEach((d, idx) => {
       d.classList.toggle('active', idx === currentBannerIndex);
     });
@@ -68,11 +67,10 @@ async function loadBannersSlider() {
   };
 
   function startBannerTimer() {
-    // 5000ms (5 seconds) aram se ruk kar agla banner slide hoga
     bannerInterval = setInterval(() => {
       currentBannerIndex = (currentBannerIndex + 1) % banners.length;
       updateSliderPosition();
-    }, 5000);
+    }, 4500);
   }
 
   function resetBannerTimer() {

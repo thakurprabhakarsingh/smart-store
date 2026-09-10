@@ -42,7 +42,7 @@ header {
   outline: none;
 }
 
-/* 3-Banner Slow & Smooth Carousel Slider */
+/* 1-by-1 Single Frame Banner Carousel Slider */
 .carousel-container {
   max-width: 1000px;
   margin: 12px auto 6px auto;
@@ -53,18 +53,21 @@ header {
 
 .carousel-slider {
   display: flex;
-  transition: transform 0.9s ease-in-out; /* Dheema aur smooth transition */
-  border-radius: 12px;
   width: 100%;
+  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  border-radius: 12px;
 }
 
 .carousel-slide {
   flex: 0 0 100%;
   min-width: 100%;
+  max-width: 100%;
   width: 100%;
-  height: 160px;
+  height: 165px;
   position: relative;
   background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .carousel-slide img {
@@ -79,10 +82,11 @@ header {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
   color: white;
   padding: 10px 14px;
   font-weight: bold;
+  font-size: 14px;
 }
 
 .carousel-dots {
@@ -97,13 +101,13 @@ header {
   height: 8px;
   background: #cbd5e1;
   border-radius: 50%;
-  transition: all 0.5s ease;
+  transition: all 0.4s ease;
   cursor: pointer;
 }
 
 .dot.active {
   background: #2563eb;
-  width: 22px;
+  width: 20px;
   border-radius: 6px;
 }
 
