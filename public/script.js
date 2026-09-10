@@ -35,32 +35,52 @@ function navigateTab(tab, btn) {
   }
 }
 
-// ---------------- 3-BANNER AUTO-SCROLL SLIDER ---------------- //
+// ---------------- 3-BANNER SLOW & ACCURATE AUTO-SCROLL ---------------- //
 async function loadBannersSlider() {
   const res = await fetch('/api/banners');
   const banners = await res.json();
   const slider = document.getElementById('carousel-slider');
   const dotsBox = document.getElementById('carousel-dots');
 
-  if (banners.length === 0) return;
+  if (!banners || banners.length === 0) return;
 
   slider.innerHTML = banners.map(b => `
     <div class="carousel-slide">
-      <img src="${b.imageUrl}" alt="${b.title}">
-      <div class="carousel-caption">${b.title}</div>
+      <img src="${b.imageUrl}" alt="${b.title || 'Special Offer'}" onerror="this.src='https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200'">
+      ${b.title ? `<div class="carousel-caption">${b.title}</div>` : ''}
     </div>
   `).join('');
 
-  dotsBox.innerHTML = banners.map((_, i) => `<div class="dot ${i === 0 ? 'active' : ''}"></div>`).join('');
+  dotsBox.innerHTML = banners.map((_, i) => `<div class="dot ${i === 0 ? 'active' : ''}" onclick="goToBanner(${i})"></div>`).join('');
 
-  if (bannerInterval) clearInterval(bannerInterval);
-  bannerInterval = setInterval(() => {
-    currentBannerIndex = (currentBannerIndex + 1) % banners.length;
-    slider.style.transform = `translateX(-${currentBannerIndex * 100}%)`;
+  function updateSliderPosition() {
+    const shiftPercent = currentBannerIndex * (100 / banners.length);
+    slider.style.transform = `translateX(-${shiftPercent}%)`;
     document.querySelectorAll('.dot').forEach((d, idx) => {
       d.classList.toggle('active', idx === currentBannerIndex);
     });
-  }, 3500); // 3.5 seconds auto-scroll
+  }
+
+  window.goToBanner = (idx) => {
+    currentBannerIndex = idx;
+    updateSliderPosition();
+    resetBannerTimer();
+  };
+
+  function startBannerTimer() {
+    // 5000ms (5 seconds) aram se ruk kar agla banner slide hoga
+    bannerInterval = setInterval(() => {
+      currentBannerIndex = (currentBannerIndex + 1) % banners.length;
+      updateSliderPosition();
+    }, 5000);
+  }
+
+  function resetBannerTimer() {
+    if (bannerInterval) clearInterval(bannerInterval);
+    startBannerTimer();
+  }
+
+  startBannerTimer();
 }
 
 // ---------------- BEST DEALS PRODUCTS ---------------- //
@@ -70,7 +90,7 @@ async function loadBestDeals() {
   const wrapper = document.getElementById('best-deals-wrapper');
   const list = document.getElementById('best-deals-list');
 
-  if (deals.length === 0) {
+  if (!deals || deals.length === 0) {
     wrapper.style.display = 'none';
     return;
   }
@@ -82,8 +102,8 @@ async function loadBestDeals() {
       <img src="${p.image}" alt="${p.name}">
       <h4 style="font-size: 13px; margin: 4px 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</h4>
       <div style="font-weight: bold; color: #dc2626; font-size: 13px; margin-bottom: 6px;">₹${p.price}</div>
-      <button style="width: 100%; padding: 4px; font-size: 11px; background: #dc2626; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price})">
-        Add
+      <button style="width: 100%; padding: 5px; font-size: 12px; background: #dc2626; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price})">
+        Add to Cart
       </button>
     </div>
   `).join('');

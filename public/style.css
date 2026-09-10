@@ -1,338 +1,343 @@
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    margin: 0;
-    padding-bottom: 75px;
-    background: #f8fafc;
-    color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  padding-bottom: 75px;
+  background: #f8fafc;
+  color: #0f172a;
 }
 
 header {
-    background: #0f172a;
-    color: white;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    position: sticky;
-    top: 0;
-    z-index: 99;
+  background: #0f172a;
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 99;
 }
 
 .brand {
-    font-weight: bold;
-    font-size: 18px;
+  font-weight: bold;
+  font-size: 18px;
 }
 
 .search-bar-wrap {
-    flex: 1;
+  flex: 1;
 }
 
 .search-bar-wrap input {
-    width: 100%;
-    padding: 8px 14px;
-    border-radius: 20px;
-    border: none;
-    background: #1e293b;
-    color: white;
-    outline: none;
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: none;
+  background: #1e293b;
+  color: white;
+  outline: none;
 }
 
-/* 3-Banner Carousel Slider */
+/* 3-Banner Slow & Smooth Carousel Slider */
 .carousel-container {
-    max-width: 1000px;
-    margin: 12px auto 6px auto;
-    padding: 0 12px;
-    overflow: hidden;
-    position: relative;
+  max-width: 1000px;
+  margin: 12px auto 6px auto;
+  padding: 0 12px;
+  overflow: hidden;
+  position: relative;
 }
 
 .carousel-slider {
-    display: flex;
-    transition: transform 0.5s ease-in-out;
-    border-radius: 12px;
-    overflow: hidden;
+  display: flex;
+  transition: transform 0.9s ease-in-out; /* Dheema aur smooth transition */
+  border-radius: 12px;
+  width: 100%;
 }
 
 .carousel-slide {
-    min-width: 100%;
-    height: 160px;
-    position: relative;
+  flex: 0 0 100%;
+  min-width: 100%;
+  width: 100%;
+  height: 160px;
+  position: relative;
+  background: #e2e8f0;
 }
 
 .carousel-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .carousel-caption {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-    color: white;
-    padding: 10px 14px;
-    font-weight: bold;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  color: white;
+  padding: 10px 14px;
+  font-weight: bold;
 }
 
 .carousel-dots {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .dot {
-    width: 8px;
-    height: 8px;
-    background: #cbd5e1;
-    border-radius: 50%;
-    transition: background 0.3s;
+  width: 8px;
+  height: 8px;
+  background: #cbd5e1;
+  border-radius: 50%;
+  transition: all 0.5s ease;
+  cursor: pointer;
 }
 
 .dot.active {
-    background: #2563eb;
-    width: 18px;
-    border-radius: 6px;
+  background: #2563eb;
+  width: 22px;
+  border-radius: 6px;
 }
 
 /* Best Deals Side Scroll */
 .best-deals-scroll {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    scrollbar-width: none;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
 }
 
 .best-deals-scroll::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 .deal-card {
-    min-width: 150px;
-    max-width: 150px;
-    background: white;
-    border-radius: 10px;
-    padding: 8px;
-    border: 1.5px solid #fecaca;
-    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.08);
-    position: relative;
+  min-width: 150px;
+  max-width: 150px;
+  background: white;
+  border-radius: 10px;
+  padding: 8px;
+  border: 1.5px solid #fecaca;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.08);
+  position: relative;
 }
 
 .deal-badge {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    background: #dc2626;
-    color: white;
-    font-size: 10px;
-    font-weight: bold;
-    padding: 2px 6px;
-    border-radius: 4px;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #dc2626;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .deal-card img {
-    width: 100%;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 6px;
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 /* Category Chips */
 .container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 0 12px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 12px;
 }
 
 .section-title {
-    font-size: 16px;
-    margin: 15px 0 8px 0;
-    color: #334155;
+  font-size: 16px;
+  margin: 15px 0 8px 0;
+  color: #334155;
 }
 
 .category-chips-bar {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    white-space: nowrap;
-    padding-bottom: 6px;
-    scrollbar-width: none;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 6px;
+  scrollbar-width: none;
 }
 
 .category-chips-bar::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 .chip {
-    padding: 8px 16px;
-    background: white;
-    border: 1px solid #cbd5e1;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .chip.active {
-    background: #2563eb;
-    color: white;
-    border-color: #2563eb;
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
 }
 
 /* Product Grid */
 .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .card {
-    background: white;
-    border-radius: 10px;
-    padding: 10px;
-    border: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .card img {
-    width: 100%;
-    height: 130px;
-    object-fit: cover;
-    border-radius: 6px;
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .card h3 {
-    font-size: 14px;
-    margin: 6px 0;
+  font-size: 14px;
+  margin: 6px 0;
 }
 
 .card button {
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 8px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
-/* Bottom Nav */
+/* Bottom Navigation */
 .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: white;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    border-top: 1px solid #e2e8f0;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-    z-index: 1000;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
 }
 
 .b-tab {
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 11px;
-    color: #64748b;
-    cursor: pointer;
-    position: relative;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  color: #64748b;
+  cursor: pointer;
+  position: relative;
 }
 
 .b-tab .icon {
-    font-size: 18px;
-    margin-bottom: 2px;
+  font-size: 18px;
+  margin-bottom: 2px;
 }
 
 .b-tab.active {
-    color: #2563eb;
-    font-weight: bold;
+  color: #2563eb;
+  font-weight: bold;
 }
 
 .badge {
-    background: #ef4444;
-    color: white;
-    border-radius: 10px;
-    font-size: 10px;
-    padding: 1px 6px;
-    position: absolute;
-    top: -4px;
-    right: -8px;
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  padding: 1px 6px;
+  position: absolute;
+  top: -4px;
+  right: -8px;
 }
 
 /* Modals */
 .modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 2000;
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2000;
 }
 
 .modal-content {
-    background: white;
-    margin: 10% auto;
-    padding: 20px;
-    max-width: 400px;
-    border-radius: 12px;
-    position: relative;
+  background: white;
+  margin: 10% auto;
+  padding: 20px;
+  max-width: 400px;
+  border-radius: 12px;
+  position: relative;
 }
 
 .close {
-    position: absolute;
-    right: 14px;
-    top: 10px;
-    font-size: 24px;
-    cursor: pointer;
+  position: absolute;
+  right: 14px;
+  top: 10px;
+  font-size: 24px;
+  cursor: pointer;
 }
 
 input,
 textarea {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
 }
 
 .primary-btn {
-    width: 100%;
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .primary-btn.checkout {
-    background: #16a34a;
+  background: #16a34a;
 }
 
 .nav-btn {
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
 }
