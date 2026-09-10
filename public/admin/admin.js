@@ -142,13 +142,40 @@ function renderProductsList(list) {
   `).join('');
 }
 
+let selectedImageBase64 = "";
+
+// Image select/camera click hone par preview aur Base64 me convert karna
+function handleImageSelection(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // File size check (5MB limit)
+  if (file.size > 5 * 1024 * 1024) {
+    alert("Photo ka size 5MB se chhota hona chahiye!");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    selectedImageBase64 = e.target.result;
+    const previewWrapper = document.getElementById('image-preview-wrapper');
+    const previewImg = document.getElementById('prod-img-preview');
+    previewImg.src = selectedImageBase64;
+    previewWrapper.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+// Updated addProduct function
 async function addProduct() {
   const name = document.getElementById('prod-name').value.trim();
   const price = document.getElementById('prod-price').value.trim();
   const category = document.getElementById('prod-category').value;
-  const image = document.getElementById('prod-image').value.trim();
+  const image = selectedImageBase64;
 
-  if (!name || !price || !category || !image) return alert("Fill all details!");
+  if (!name || !price || !category || !image) {
+    return alert("Saari details bharein aur photo select karein!");
+  }
 
   const res = await fetch('/api/products', {
     method: 'POST',
@@ -160,10 +187,13 @@ async function addProduct() {
     alert("Product added successfully!");
     document.getElementById('prod-name').value = '';
     document.getElementById('prod-price').value = '';
-    document.getElementById('prod-image').value = '';
+    document.getElementById('image-preview-wrapper').style.display = 'none';
+    selectedImageBase64 = "";
     toggleAccordion('add-prod-collapse');
     loadAdminProducts();
-  } else alert(data.message);
+  } else {
+    alert(data.message);
+  }
 }
 
 async function updatePrice(id) {

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="hi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Portal - Clean Dashboard</title>
   <link rel="stylesheet" href="admin.css">
 </head>
+
 <body>
 
   <!-- Auth Screen -->
@@ -45,7 +47,7 @@
     </nav>
 
     <div class="container">
-      
+
       <!-- Section 1: Products -->
       <section id="products-sec" class="admin-section active">
         <div class="card">
@@ -57,7 +59,32 @@
             <input type="text" id="prod-name" placeholder="Product Name">
             <input type="number" id="prod-price" placeholder="Price (₹)">
             <select id="prod-category"></select>
-            <input type="text" id="prod-image" placeholder="Image URL (https://...)">
+            <!-- Gallery & Camera Upload Inputs -->
+            <div style="margin: 10px 0;">
+              <label style="font-weight: 600; font-size: 13px; color: #475569;">Select Product Image:</label>
+              <div style="display: flex; gap: 10px; margin-top: 6px;">
+                <!-- Gallery Input -->
+                <label
+                  style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                  🖼️ Gallery se Chunein
+                  <input type="file" id="prod-file-gallery" accept="image/*" style="display: none;"
+                    onchange="handleImageSelection(event)">
+                </label>
+                <!-- Camera Input (Mobile capture) -->
+                <label
+                  style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                  📷 Camera se Khinchein
+                  <input type="file" id="prod-file-camera" accept="image/*" capture="environment" style="display: none;"
+                    onchange="handleImageSelection(event)">
+                </label>
+              </div>
+            </div>
+
+            <!-- Preview Image -->
+            <div id="image-preview-wrapper" style="display: none; margin: 10px 0; text-align: center;">
+              <img id="prod-img-preview" src="" alt="Preview"
+                style="max-height: 120px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
             <button class="primary-btn green" onclick="addProduct()">Publish Product</button>
           </div>
         </div>
@@ -65,7 +92,8 @@
         <div class="card">
           <div class="section-header-row">
             <h3>📦 All Added Products</h3>
-            <input type="text" id="admin-search-input" placeholder="🔍 Search product in inventory..." oninput="filterAdminProducts()">
+            <input type="text" id="admin-search-input" placeholder="🔍 Search product in inventory..."
+              oninput="filterAdminProducts()">
           </div>
           <div id="admin-products-list"></div>
         </div>
@@ -113,4 +141,5 @@
 
   <script src="admin.js"></script>
 </body>
+
 </html>
