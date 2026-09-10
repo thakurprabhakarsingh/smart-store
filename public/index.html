@@ -19,18 +19,24 @@
     </div>
   </header>
 
-  <!-- Banner -->
-  <div class="banner-container">
-    <div class="banner-box">
-      <img id="offer-banner-img" src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200" alt="Banner">
-      <div class="banner-caption" id="offer-banner-title">Welcome to Smart Store</div>
-    </div>
+  <!-- 3-Banner Auto-Sliding Carousel -->
+  <div class="carousel-container">
+    <div class="carousel-slider" id="carousel-slider"></div>
+    <div class="carousel-dots" id="carousel-dots"></div>
   </div>
 
   <div class="container main-content">
+    <!-- Best Deals Side Scroll -->
+    <div id="best-deals-wrapper" style="display: none;">
+      <h3 class="section-title" style="color: #dc2626;">🔥 Today's Best Deals</h3>
+      <div class="best-deals-scroll" id="best-deals-list"></div>
+    </div>
+
+    <!-- Categories Side Scroll -->
     <h3 class="section-title">Shop by Category</h3>
     <div class="category-chips-bar" id="category-chips"></div>
 
+    <!-- Products Grid -->
     <h3 class="section-title" style="margin-top: 25px;">Available Products</h3>
     <div class="grid" id="product-list"></div>
   </div>

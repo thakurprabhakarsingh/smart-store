@@ -2,9 +2,12 @@ let currentCategory = 'All';
 let currentUser = JSON.parse(localStorage.getItem('smartStoreUser')) || null;
 let cart = [];
 let pendingPhone = "";
+let currentBannerIndex = 0;
+let bannerInterval = null;
 
 window.onload = () => {
-  loadBanner();
+  loadBannersSlider();
+  loadBestDeals();
   loadCategories();
   loadProducts();
   updateUserUI();
@@ -32,107 +35,61 @@ function navigateTab(tab, btn) {
   }
 }
 
-function openAuthModal() { document.getElementById('auth-modal').style.display = 'block'; }
-function closeAuthModal() { document.getElementById('auth-modal').style.display = 'none'; }
+// ---------------- 3-BANNER AUTO-SCROLL SLIDER ---------------- //
+async function loadBannersSlider() {
+  const res = await fetch('/api/banners');
+  const banners = await res.json();
+  const slider = document.getElementById('carousel-slider');
+  const dotsBox = document.getElementById('carousel-dots');
 
-async function sendOtp() {
-  const phone = document.getElementById('auth-phone').value.trim();
-  if (!/^[6-9]\d{9}$/.test(phone)) {
-    return alert("Kripya 10-digit valid mobile number dalein!");
-  }
+  if (banners.length === 0) return;
 
-  pendingPhone = phone;
-  const res = await fetch('/api/auth/send-otp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone })
-  });
+  slider.innerHTML = banners.map(b => `
+    <div class="carousel-slide">
+      <img src="${b.imageUrl}" alt="${b.title}">
+      <div class="carousel-caption">${b.title}</div>
+    </div>
+  `).join('');
 
-  const data = await res.json();
-  if (data.success) {
-    alert(data.message);
-    document.getElementById('phone-step-1').style.display = 'none';
-    document.getElementById('phone-step-2').style.display = 'block';
-  } else {
-    alert(data.message);
-  }
+  dotsBox.innerHTML = banners.map((_, i) => `<div class="dot ${i === 0 ? 'active' : ''}"></div>`).join('');
+
+  if (bannerInterval) clearInterval(bannerInterval);
+  bannerInterval = setInterval(() => {
+    currentBannerIndex = (currentBannerIndex + 1) % banners.length;
+    slider.style.transform = `translateX(-${currentBannerIndex * 100}%)`;
+    document.querySelectorAll('.dot').forEach((d, idx) => {
+      d.classList.toggle('active', idx === currentBannerIndex);
+    });
+  }, 3500); // 3.5 seconds auto-scroll
 }
 
-async function verifyOtp() {
-  const otp = document.getElementById('auth-otp').value.trim();
-  if (otp.length < 4) return alert("Valid OTP dalein!");
+// ---------------- BEST DEALS PRODUCTS ---------------- //
+async function loadBestDeals() {
+  const res = await fetch('/api/products?bestDeal=true');
+  const deals = await res.json();
+  const wrapper = document.getElementById('best-deals-wrapper');
+  const list = document.getElementById('best-deals-list');
 
-  const res = await fetch('/api/auth/verify-otp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: pendingPhone, otp })
-  });
-
-  const data = await res.json();
-  if (data.success) {
-    currentUser = data.user;
-    localStorage.setItem('smartStoreUser', JSON.stringify(currentUser));
-    closeAuthModal();
-    updateUserUI();
-
-    if (!currentUser.profileCompleted) {
-      openProfileModal();
-    }
-  } else {
-    alert(data.message);
+  if (deals.length === 0) {
+    wrapper.style.display = 'none';
+    return;
   }
+
+  wrapper.style.display = 'block';
+  list.innerHTML = deals.map(p => `
+    <div class="deal-card">
+      <span class="deal-badge">🔥 Deal</span>
+      <img src="${p.image}" alt="${p.name}">
+      <h4 style="font-size: 13px; margin: 4px 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</h4>
+      <div style="font-weight: bold; color: #dc2626; font-size: 13px; margin-bottom: 6px;">₹${p.price}</div>
+      <button style="width: 100%; padding: 4px; font-size: 11px; background: #dc2626; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price})">
+        Add
+      </button>
+    </div>
+  `).join('');
 }
 
-function openProfileModal() {
-  document.getElementById('profile-modal').style.display = 'block';
-  if (currentUser) {
-    document.getElementById('prof-phone').value = currentUser.phone || "";
-    document.getElementById('prof-name').value = currentUser.name || "";
-    document.getElementById('prof-house').value = currentUser.houseNo || "";
-    document.getElementById('prof-city').value = currentUser.city || "";
-    document.getElementById('prof-address').value = currentUser.address || "";
-  }
-}
-
-function closeProfileModal() {
-  document.getElementById('profile-modal').style.display = 'none';
-}
-
-async function saveProfile() {
-  const name = document.getElementById('prof-name').value.trim();
-  const houseNo = document.getElementById('prof-house').value.trim();
-  const city = document.getElementById('prof-city').value.trim();
-  const address = document.getElementById('prof-address').value.trim();
-
-  if (!name || !address) return alert("Naam aur complete address bharna zaroori hai!");
-
-  const res = await fetch('/api/auth/update-profile', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: currentUser.phone, name, houseNo, city, address })
-  });
-
-  const data = await res.json();
-  if (data.success) {
-    currentUser = data.user;
-    localStorage.setItem('smartStoreUser', JSON.stringify(currentUser));
-    alert("Profile successfully updated!");
-    closeProfileModal();
-    updateUserUI();
-  } else {
-    alert(data.message);
-  }
-}
-
-function updateUserUI() {
-  const statusDiv = document.getElementById('user-header-status');
-  if (currentUser) {
-    statusDiv.innerHTML = `<span style="font-size: 13px; color: #38bdf8; cursor: pointer;" onclick="openProfileModal()">👋 ${currentUser.name || currentUser.phone}</span>`;
-  } else {
-    statusDiv.innerHTML = `<button class="nav-btn" onclick="openAuthModal()">Login</button>`;
-  }
-}
-
+// ---------------- CATEGORIES & ALL PRODUCTS ---------------- //
 async function loadCategories() {
   const res = await fetch('/api/categories');
   const cats = await res.json();
@@ -158,7 +115,7 @@ async function loadProducts() {
   list.innerHTML = products.map(p => `
     <div class="card">
       <img src="${p.image}" alt="${p.name}">
-      <h3>${p.name}</h3>
+      <h3>${p.name} ${p.isBestDeal ? '<span style="color:#dc2626; font-size:11px;">🔥</span>' : ''}</h3>
       <p style="font-weight: bold; margin: 4px 0 10px 0;">₹${p.price}</p>
       <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price})">Add to Cart</button>
     </div>
@@ -167,6 +124,7 @@ async function loadProducts() {
 
 function handleSearch() { loadProducts(); }
 
+// ---------------- CART & CHECKOUT ---------------- //
 function addToCart(id, name, price) {
   const item = cart.find(i => i.id === id);
   if (item) item.quantity += 1;
@@ -186,7 +144,7 @@ function updateCartUI() {
 async function checkout() {
   if (!currentUser) return openAuthModal();
   if (!currentUser.profileCompleted) {
-    alert("Kripya checkout se pehle profile me address save karein!");
+    alert("Kripya checkout se pehle profile me address bharein!");
     return openProfileModal();
   }
   if (cart.length === 0) return alert("Cart khali hai!");
@@ -206,6 +164,92 @@ async function checkout() {
   }
 }
 
+// ---------------- ORDERS, SUPPORT & AUTH ---------------- //
+function openAuthModal() { document.getElementById('auth-modal').style.display = 'block'; }
+function closeAuthModal() { document.getElementById('auth-modal').style.display = 'none'; }
+
+async function sendOtp() {
+  const phone = document.getElementById('auth-phone').value.trim();
+  if (!/^[6-9]\d{9}$/.test(phone)) return alert("10-digit mobile number dalein!");
+
+  pendingPhone = phone;
+  const res = await fetch('/api/auth/send-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  });
+  const data = await res.json();
+  if (data.success) {
+    alert(data.message);
+    document.getElementById('phone-step-1').style.display = 'none';
+    document.getElementById('phone-step-2').style.display = 'block';
+  }
+}
+
+async function verifyOtp() {
+  const otp = document.getElementById('auth-otp').value.trim();
+  const res = await fetch('/api/auth/verify-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: pendingPhone, otp })
+  });
+  const data = await res.json();
+  if (data.success) {
+    currentUser = data.user;
+    localStorage.setItem('smartStoreUser', JSON.stringify(currentUser));
+    closeAuthModal();
+    updateUserUI();
+    if (!currentUser.profileCompleted) openProfileModal();
+  } else {
+    alert(data.message);
+  }
+}
+
+function openProfileModal() {
+  document.getElementById('profile-modal').style.display = 'block';
+  if (currentUser) {
+    document.getElementById('prof-phone').value = currentUser.phone || "";
+    document.getElementById('prof-name').value = currentUser.name || "";
+    document.getElementById('prof-house').value = currentUser.houseNo || "";
+    document.getElementById('prof-city').value = currentUser.city || "";
+    document.getElementById('prof-address').value = currentUser.address || "";
+  }
+}
+
+function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
+
+async function saveProfile() {
+  const name = document.getElementById('prof-name').value.trim();
+  const houseNo = document.getElementById('prof-house').value.trim();
+  const city = document.getElementById('prof-city').value.trim();
+  const address = document.getElementById('prof-address').value.trim();
+
+  if (!name || !address) return alert("Name aur Address bharna zaroori hai!");
+
+  const res = await fetch('/api/auth/update-profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: currentUser.phone, name, houseNo, city, address })
+  });
+  const data = await res.json();
+  if (data.success) {
+    currentUser = data.user;
+    localStorage.setItem('smartStoreUser', JSON.stringify(currentUser));
+    alert("Profile saved!");
+    closeProfileModal();
+    updateUserUI();
+  }
+}
+
+function updateUserUI() {
+  const statusDiv = document.getElementById('user-header-status');
+  if (currentUser) {
+    statusDiv.innerHTML = `<span style="font-size: 13px; color: #38bdf8; cursor: pointer;" onclick="openProfileModal()">👋 ${currentUser.name || currentUser.phone}</span>`;
+  } else {
+    statusDiv.innerHTML = `<button class="nav-btn" onclick="openAuthModal()">Login</button>`;
+  }
+}
+
 async function openMyOrders() {
   document.getElementById('orders-modal').style.display = 'block';
   const res = await fetch(`/api/orders/my-orders?customerId=${encodeURIComponent(currentUser.phone)}`);
@@ -218,15 +262,6 @@ async function openMyOrders() {
       <p style="margin:4px 0;">Total: ₹${o.total} | Status: ${o.delivered ? '✅ Delivered' : '⏳ Pending'}</p>
     </div>
   `).join('');
-}
-
-async function loadBanner() {
-  const res = await fetch('/api/banner');
-  const b = await res.json();
-  if (b.imageUrl) {
-    document.getElementById('offer-banner-img').src = b.imageUrl;
-    document.getElementById('offer-banner-title').innerText = b.title || "";
-  }
 }
 
 async function loadChatMessages() {

@@ -18,7 +18,6 @@
       min-height: 100vh;
     }
 
-    /* Auth Box */
     .auth-card {
       max-width: 380px;
       margin: 80px auto;
@@ -30,12 +29,7 @@
       border: 1px solid #e2e8f0;
     }
 
-    .auth-card h2 {
-      margin-bottom: 20px;
-      font-size: 22px;
-      color: #1e293b;
-    }
-
+    .auth-card h2 { margin-bottom: 20px; font-size: 22px; color: #1e293b; }
     .auth-card input {
       width: 100%;
       padding: 12px;
@@ -44,25 +38,8 @@
       border-radius: 8px;
       outline: none;
       font-size: 14px;
-      background: #ffffff;
     }
 
-    .auth-card input:focus {
-      border-color: #2563eb;
-    }
-
-    .auth-toggle {
-      margin-top: 15px;
-      font-size: 13px;
-    }
-
-    .auth-toggle a {
-      color: #2563eb;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    /* Dashboard Top Navigation */
     .top-nav {
       background: #0f172a;
       color: #ffffff;
@@ -86,13 +63,6 @@
       color: white;
       padding: 2px 8px;
       border-radius: 12px;
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
     }
 
     .logout-btn {
@@ -106,7 +76,6 @@
       font-size: 13px;
     }
 
-    /* Navigation Tabs */
     .nav-tabs {
       background: #ffffff;
       display: flex;
@@ -118,14 +87,13 @@
     .tab-btn {
       background: none;
       border: none;
-      padding: 14px 20px;
+      padding: 14px 18px;
       font-size: 14px;
       font-weight: 600;
       color: #64748b;
       cursor: pointer;
       border-bottom: 3px solid transparent;
       white-space: nowrap;
-      position: relative;
     }
 
     .tab-btn.active {
@@ -142,22 +110,15 @@
       margin-left: 6px;
     }
 
-    /* Containers & Sections */
     .container {
       max-width: 950px;
       margin: 20px auto;
       padding: 0 16px;
     }
 
-    .admin-section {
-      display: none;
-    }
+    .admin-section { display: none; }
+    .admin-section.active { display: block; }
 
-    .admin-section.active {
-      display: block;
-    }
-
-    /* Cards */
     .card {
       background: #ffffff;
       border-radius: 10px;
@@ -167,19 +128,9 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
 
-    .card h3 {
-      margin-bottom: 15px;
-      font-size: 16px;
-      color: #1e293b;
-    }
+    .card h3 { margin-bottom: 15px; font-size: 16px; color: #1e293b; }
 
-    /* Form Elements */
-    input[type="text"],
-    input[type="number"],
-    input[type="password"],
-    input[type="date"],
-    select,
-    textarea {
+    input[type="text"], input[type="number"], input[type="password"], input[type="date"], select {
       width: 100%;
       padding: 10px 12px;
       margin-bottom: 12px;
@@ -187,28 +138,22 @@
       border-radius: 6px;
       font-size: 14px;
       outline: none;
-      background: #ffffff;
     }
 
-    input:focus, select:focus, textarea:focus {
-      border-color: #2563eb;
-    }
-
-    /* Buttons */
     .primary-btn {
       border: none;
-      padding: 11px;
+      padding: 10px 14px;
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
-      font-size: 14px;
-      width: 100%;
+      font-size: 13px;
     }
 
     .primary-btn.blue { background: #2563eb; color: #ffffff; }
     .primary-btn.green { background: #16a34a; color: #ffffff; }
+    .primary-btn.purple { background: #7c3aed; color: #ffffff; }
+    .primary-btn.amber { background: #d97706; color: #ffffff; }
 
-    /* Accordion */
     .accordion-toggle {
       width: 100%;
       display: flex;
@@ -224,24 +169,7 @@
       color: #334155;
     }
 
-    .collapsible-content {
-      display: none;
-      padding-top: 15px;
-    }
-
-    .section-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .section-header-row input {
-      max-width: 250px;
-      margin-bottom: 0;
-    }
+    .collapsible-content { display: none; padding-top: 15px; }
 
     /* Order Card Styling */
     .order-item-box {
@@ -258,49 +186,36 @@
       background: #f0fdf4;
     }
 
-    .order-header-line {
+    .order-actions-row {
       display: flex;
-      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
       align-items: center;
-      margin-bottom: 6px;
+      justify-content: flex-end;
     }
 
-    .status-tag {
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-size: 12px;
+    .best-deal-tag {
+      background: #fee2e2;
+      color: #dc2626;
+      font-size: 11px;
       font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
     }
 
-    .status-tag.pending { background: #fef3c7; color: #b45309; }
-    .status-tag.delivered { background: #d1fae5; color: #047857; }
-
-    /* Calendar Archive Filter */
-    .calendar-filter-box {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: #f8fafc;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .calendar-filter-box label {
-      font-weight: bold;
-      font-size: 13px;
-      color: #475569;
-      white-space: nowrap;
-    }
-
-    .calendar-filter-box input[type="date"] {
-      max-width: 220px;
-      margin-bottom: 0;
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100%; }
     }
   </style>
 </head>
 <body>
+
+  <!-- Hidden Bill Print Container -->
+  <div id="print-area" style="display: none; padding: 20px; font-family: monospace;"></div>
 
   <!-- Admin Auth Box -->
   <div id="auth-box" class="auth-card">
@@ -311,9 +226,9 @@
     <input type="text" id="admin-user" placeholder="Username">
     <input type="password" id="admin-pass" placeholder="Password">
     
-    <button class="primary-btn blue" id="auth-submit-btn" onclick="loginAdmin()">Login</button>
-    <div class="auth-toggle">
-      <a href="javascript:void(0)" id="auth-toggle-link" onclick="toggleAdminAuthMode()">Naya Admin Register Karein</a>
+    <button class="primary-btn blue" style="width: 100%;" id="auth-submit-btn" onclick="loginAdmin()">Login</button>
+    <div style="margin-top: 15px; font-size: 13px;">
+      <a href="javascript:void(0)" id="auth-toggle-link" style="color: #2563eb; text-decoration: none;" onclick="toggleAdminAuthMode()">Naya Admin Register Karein</a>
     </div>
   </div>
 
@@ -322,27 +237,26 @@
     <div class="top-nav">
       <div class="brand">
         ⚙️ Admin Panel
-        <span class="live-indicator">● LIVE AUTO-SYNC</span>
+        <span class="live-indicator">● LIVE PENDING ONLY</span>
       </div>
       <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
     </div>
 
-    <!-- Navigation Tabs -->
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchSection('orders-sec', this)">
-        📦 Orders <span class="tab-badge" id="pending-orders-badge">0</span>
+        📦 Pending Orders <span class="tab-badge" id="pending-orders-badge">0</span>
       </button>
       <button class="tab-btn" onclick="switchSection('calendar-sec', this)">
         📅 Delivered Calendar
       </button>
       <button class="tab-btn" onclick="switchSection('products-sec', this)">
-        Products
+        🛍️ Products & Deals
       </button>
       <button class="tab-btn" onclick="switchSection('categories-sec', this)">
         Categories
       </button>
       <button class="tab-btn" onclick="switchSection('banner-sec', this)">
-        Banner
+        🖼️ Banner Slider
       </button>
       <button class="tab-btn" onclick="switchSection('messages-sec', this)">
         💬 Support
@@ -350,74 +264,75 @@
     </div>
 
     <div class="container">
-      <!-- Section 1: Live Active Orders -->
+      <!-- Section 1: Pending Orders (Delivered Hote Hi Gayab) -->
       <section id="orders-sec" class="admin-section active">
         <div class="card">
-          <div class="section-header-row">
-            <h3>⚡ Live Orders (Page Refresh Ki Zaroorat Nahi)</h3>
-            <span style="font-size: 12px; color: #64748b;">Naye order yahan auto-appear honge</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3>⚡ Live Pending Orders</h3>
+            <span style="font-size: 12px; color: #64748b;">(Delivered order yahan se hat kar calendar me chale jayenge)</span>
           </div>
           <div id="orders-list"></div>
         </div>
       </section>
 
-      <!-- Section 2: Calendar Archive for Delivered Orders -->
+      <!-- Section 2: Delivered Calendar Archive -->
       <section id="calendar-sec" class="admin-section">
         <div class="card">
-          <h3>📅 Delivered Orders Calendar Archive</h3>
-          <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">
-            Jis date ko order delivered hua tha, wo date select karke us din ke sabhi items dekhein:
-          </p>
-
-          <div class="calendar-filter-box">
-            <label for="delivery-calendar-picker">Date Chunein:</label>
-            <input type="date" id="delivery-calendar-picker" onchange="filterDeliveredByCalendar()">
-            <button class="primary-btn blue" style="width: auto; padding: 8px 16px;" onclick="resetCalendarFilter()">Show All Delivered</button>
+          <h3>📅 Delivered Orders Calendar</h3>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 14px;">
+            <label style="font-weight: bold; font-size: 13px;">Date Chunein:</label>
+            <input type="date" id="delivery-calendar-picker" style="max-width: 200px; margin-bottom: 0;" onchange="filterDeliveredByCalendar()">
+            <button class="primary-btn blue" onclick="resetCalendarFilter()">Show All</button>
           </div>
-
-          <div id="calendar-delivered-summary" style="font-weight: 600; margin-bottom: 10px; color: #1e293b;"></div>
+          <div id="calendar-delivered-summary" style="font-weight: bold; margin-bottom: 10px;"></div>
           <div id="calendar-delivered-list"></div>
         </div>
       </section>
 
-      <!-- Section 3: Products -->
+      <!-- Section 3: Products with Best Deal -->
       <section id="products-sec" class="admin-section">
         <div class="card">
           <button class="accordion-toggle" onclick="toggleAccordion('add-prod-collapse')">
-            <span>➕ Add New Product (Click to Expand)</span>
-            <span id="add-prod-icon">▼</span>
+            <span>➕ Add New Product (Best Deal Option)</span>
+            <span>▼</span>
           </button>
           <div id="add-prod-collapse" class="collapsible-content">
             <input type="text" id="prod-name" placeholder="Product Name">
             <input type="number" id="prod-price" placeholder="Price (₹)">
             <select id="prod-category"></select>
 
-            <div style="margin: 10px 0;">
-              <label style="font-weight: 600; font-size: 13px; color: #475569;">Select Product Image:</label>
-              <div style="display: flex; gap: 10px; margin-top: 6px;">
-                <label style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                  🖼️ Gallery se Chunein
-                  <input type="file" id="prod-file-gallery" accept="image/*" style="display: none;" onchange="handleImageSelection(event)">
-                </label>
-                <label style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                  📷 Camera se Khinchein
-                  <input type="file" id="prod-file-camera" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelection(event)">
-                </label>
-              </div>
+            <!-- Best Deal Toggle -->
+            <div style="margin: 8px 0 14px 0; display: flex; align-items: center; gap: 10px; background: #fef2f2; padding: 10px; border-radius: 6px; border: 1px solid #fecaca;">
+              <input type="checkbox" id="prod-best-deal" style="width: 18px; height: 18px; cursor: pointer;">
+              <label for="prod-best-deal" style="font-weight: bold; color: #b91c1c; font-size: 13px; cursor: pointer;">
+                🔥 Mark as "Best Deal" (Homepage par highlighted side-scroll me dikhega)
+              </label>
             </div>
 
-            <div id="image-preview-wrapper" style="display: none; margin: 10px 0; text-align: center;">
-              <img id="prod-img-preview" src="" alt="Preview" style="max-height: 120px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            <!-- Image Upload Options -->
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+              <label style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                🖼️ Gallery
+                <input type="file" id="prod-file-gallery" accept="image/*" style="display: none;" onchange="handleImageSelection(event)">
+              </label>
+              <label style="flex: 1; text-align: center; background: #e2e8f0; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                📷 Camera
+                <input type="file" id="prod-file-camera" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelection(event)">
+              </label>
             </div>
 
-            <button class="primary-btn green" onclick="addProduct()">Publish Product</button>
+            <div id="image-preview-wrapper" style="display: none; margin-bottom: 10px; text-align: center;">
+              <img id="prod-img-preview" src="" alt="Preview" style="max-height: 120px; border-radius: 6px;">
+            </div>
+
+            <button class="primary-btn green" style="width: 100%;" onclick="addProduct()">Publish Product</button>
           </div>
         </div>
 
         <div class="card">
-          <div class="section-header-row">
-            <h3>📦 All Added Products</h3>
-            <input type="text" id="admin-search-input" placeholder="🔍 Search product in inventory..." oninput="filterAdminProducts()">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3>📦 All Products Inventory</h3>
+            <input type="text" id="admin-search-input" placeholder="🔍 Search inventory..." style="max-width: 250px; margin-bottom: 0;" oninput="filterAdminProducts()">
           </div>
           <div id="admin-products-list"></div>
         </div>
@@ -428,27 +343,30 @@
         <div class="card">
           <h3>➕ Manage Categories</h3>
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="new-category-input" placeholder="New Category Name">
-            <button class="primary-btn blue" style="width: 140px;" onclick="addCategory()">Add</button>
+            <input type="text" id="new-category-input" placeholder="Category Name" style="margin-bottom: 0;">
+            <button class="primary-btn blue" onclick="addCategory()">Add</button>
           </div>
           <div id="category-list" style="margin-top: 15px;"></div>
         </div>
       </section>
 
-      <!-- Section 5: Banner -->
+      <!-- Section 5: Multiple Banners (Auto Slider) -->
       <section id="banner-sec" class="admin-section">
         <div class="card">
-          <h3>🖼️ Update Store Offer Banner</h3>
+          <h3>🖼️ Add Slide Banner (2-3 Banners Auto-Scroll Honge)</h3>
           <input type="text" id="banner-img-url" placeholder="Banner Image URL">
-          <input type="text" id="banner-title" placeholder="Banner Heading/Offer Text">
-          <button class="primary-btn blue" onclick="updateBanner()">Save Banner</button>
+          <input type="text" id="banner-title" placeholder="Banner Offer Title (e.g., 50% Off Today)">
+          <button class="primary-btn blue" onclick="addBanner()">Add to Slider</button>
+
+          <h4 style="margin: 20px 0 10px 0;">Active Banners in Slider:</h4>
+          <div id="banners-list"></div>
         </div>
       </section>
 
       <!-- Section 6: Support Messages -->
       <section id="messages-sec" class="admin-section">
         <div class="card">
-          <h3>💬 Customer Queries</h3>
+          <h3>💬 Customer Support Queries</h3>
           <div id="messages-list"></div>
         </div>
       </section>

@@ -27,7 +27,7 @@ async function sendRealSMS(phone, otp) {
   return false;
 }
 
-// Phone Auth Routes
+// ---------------- CUSTOMER AUTH ---------------- //
 app.post('/api/auth/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
@@ -42,7 +42,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
   res.json({
     success: true,
-    message: smsSent ? 'OTP aapke mobile number par bhej diya gaya hai!' : 'Dev Mode OTP: ' + generatedOtp,
+    message: smsSent ? 'OTP mobile number par bhej diya gaya hai!' : 'Dev Mode OTP: ' + generatedOtp,
     devOtp: smsSent ? null : generatedOtp
   });
 });
@@ -52,7 +52,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   const stored = otpStore.get(phone);
 
   if (!stored || stored.expires < Date.now()) {
-    return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai, dubara mangwayein!' });
+    return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai!' });
   }
 
   if (stored.otp !== otp) {
@@ -84,15 +84,15 @@ app.post('/api/auth/update-profile', async (req, res) => {
   res.json({ success: true, user });
 });
 
-// Admin Auth Routes
+// ---------------- ADMIN AUTH ---------------- //
 app.post('/api/admin/register', async (req, res) => {
   try {
     const { username, password, secretKey } = req.body;
-    if (!username || !password) return res.status(400).json({ success: false, message: 'Username aur password zaroori hain!' });
+    if (!username || !password) return res.status(400).json({ success: false, message: 'Username aur password bharein!' });
     if (secretKey && secretKey !== 'ADMINSECRET') return res.status(403).json({ success: false, message: 'Invalid Admin Secret Key!' });
 
     const existingAdmin = await Admin.findOne({ username });
-    if (existingAdmin) return res.status(400).json({ success: false, message: 'Yeh username pehle se maujood hai!' });
+    if (existingAdmin) return res.status(400).json({ success: false, message: 'Username pehle se maujood hai!' });
 
     const newAdmin = new Admin({ username, password });
     await newAdmin.save();
@@ -119,23 +119,44 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// App & Admin APIs
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-
-app.get('/api/banner', async (req, res) => res.json(await Banner.findOne() || {}));
-app.post('/api/banner', async (req, res) => {
-  const { imageUrl, title } = req.body;
-  let banner = await Banner.findOne();
-  if (banner) {
-    banner.imageUrl = imageUrl;
-    banner.title = title;
-    await banner.save();
-  } else {
-    banner = await Banner.create({ imageUrl, title });
+// ---------------- BANNERS (MULTI-BANNER SLIDER) ---------------- //
+app.get('/api/banners', async (req, res) => {
+  try {
+    const banners = await Banner.find();
+    if (banners.length === 0) {
+      // Default 3 sample banners
+      return res.json([
+        { imageUrl: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200", title: "Mega Sale - Flat 40% OFF" },
+        { imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200", title: "Fresh Grocery & Daily Needs" },
+        { imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1200", title: "Best Electronics & Deals" }
+      ]);
+    }
+    res.json(banners);
+  } catch (err) {
+    res.status(500).json([]);
   }
-  res.json({ success: true, banner });
 });
 
+app.post('/api/banners', async (req, res) => {
+  try {
+    const { imageUrl, title } = req.body;
+    await Banner.create({ imageUrl, title });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/banners/:id', async (req, res) => {
+  try {
+    await Banner.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ---------------- CATEGORIES ---------------- //
 app.get('/api/categories', async (req, res) => {
   const categories = await Category.find();
   res.json(categories.map(c => c.name));
@@ -149,11 +170,13 @@ app.delete('/api/categories/:name', async (req, res) => {
   res.json({ success: true });
 });
 
+// ---------------- PRODUCTS ---------------- //
 app.get('/api/products', async (req, res) => {
-  const { category, q } = req.query;
+  const { category, q, bestDeal } = req.query;
   let filter = {};
   if (category && category !== 'All') filter.category = category;
   if (q) filter.name = { $regex: q, $options: 'i' };
+  if (bestDeal === 'true') filter.isBestDeal = true;
 
   const products = await Product.find(filter);
   res.json(products.map(p => ({
@@ -161,23 +184,27 @@ app.get('/api/products', async (req, res) => {
     name: p.name,
     price: p.price,
     category: p.category,
-    image: p.image
+    image: p.image,
+    isBestDeal: p.isBestDeal || false
   })));
 });
+
 app.post('/api/products', async (req, res) => {
   await Product.create(req.body);
   res.json({ success: true });
 });
+
 app.put('/api/products/:id', async (req, res) => {
-  await Product.findByIdAndUpdate(req.params.id, { price: req.body.price });
+  await Product.findByIdAndUpdate(req.params.id, req.body);
   res.json({ success: true });
 });
+
 app.delete('/api/products/:id', async (req, res) => {
   await Product.findByIdAndDelete(req.params.id);
   res.json({ success: true });
 });
 
-// Orders APIs
+// ---------------- ORDERS ---------------- //
 app.post('/api/checkout', async (req, res) => {
   const { customer, cart } = req.body;
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
@@ -200,7 +227,6 @@ app.post('/api/orders/toggle-delivery', async (req, res) => {
     order.delivered = !order.delivered;
     if (order.delivered) {
       const now = new Date();
-      // YYYY-MM-DD format
       order.deliveredDate = now.toISOString().split('T')[0];
       order.deliveredTimestamp = now.toLocaleString();
     } else {
@@ -216,7 +242,7 @@ app.get('/api/orders/my-orders', async (req, res) => {
   res.json(await Order.find({ customerId: req.query.customerId }).sort({ _id: -1 }));
 });
 
-// Support Messages
+// ---------------- SUPPORT ---------------- //
 app.get('/api/support/messages', async (req, res) => {
   const filter = req.query.customerId ? { customerId: req.query.customerId } : {};
   res.json(await Message.find(filter).sort({ _id: 1 }));
@@ -226,10 +252,8 @@ app.post('/api/support/send', async (req, res) => {
   res.json({ success: true });
 });
 
-// Dedicated Clean Admin Route (Static files intact)
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html')));
 
 connectDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));

@@ -42,7 +42,8 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   category: { type: String, required: true },
-  image: { type: String, required: true }
+  image: { type: String, required: true },
+  isBestDeal: { type: Boolean, default: false }
 });
 
 const orderSchema = new mongoose.Schema({
@@ -58,7 +59,7 @@ const orderSchema = new mongoose.Schema({
   items: Array,
   total: { type: Number, required: true },
   delivered: { type: Boolean, default: false },
-  deliveredDate: { type: String, default: "" }, // YYYY-MM-DD format calendar ke liye
+  deliveredDate: { type: String, default: "" },
   deliveredTimestamp: { type: String, default: "" },
   date: { type: String, default: () => new Date().toLocaleString() }
 });

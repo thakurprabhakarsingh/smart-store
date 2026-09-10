@@ -6,9 +6,7 @@ let selectedImageBase64 = "";
 let liveOrdersPoller = null;
 
 window.onload = () => {
-  if (adminToken) {
-    showDashboard();
-  }
+  if (adminToken) showDashboard();
 };
 
 function toggleAdminAuthMode() {
@@ -16,7 +14,6 @@ function toggleAdminAuthMode() {
   document.getElementById('auth-title').innerText = isRegisterMode ? "Admin Registration" : "Admin Login";
   document.getElementById('reg-secret-field').style.display = isRegisterMode ? "block" : "none";
   document.getElementById('auth-submit-btn').innerText = isRegisterMode ? "Register Admin" : "Login";
-  document.getElementById('auth-toggle-link').innerText = isRegisterMode ? "Pehle se account hai? Login karein" : "Naya Admin Register Karein";
 }
 
 async function loginAdmin() {
@@ -24,35 +21,27 @@ async function loginAdmin() {
   const password = document.getElementById('admin-pass').value.trim();
   const secretKey = document.getElementById('admin-secret').value.trim();
 
-  if (!username || !password) return alert("Username aur Password bharein!");
+  if (!username || !password) return alert("Credentials bharein!");
 
-  if (isRegisterMode) {
-    const res = await fetch('/api/admin/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, secretKey })
-    });
-    const data = await res.json();
-    if (data.success) {
-      alert("Registration successful! Ab login karein.");
+  const endpoint = isRegisterMode ? '/api/admin/register' : '/api/admin/login';
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, secretKey })
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    if (isRegisterMode) {
+      alert("Registered! Ab login karein.");
       toggleAdminAuthMode();
     } else {
-      alert("Error: " + data.message);
-    }
-  } else {
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (data.success) {
       adminToken = data.token;
       localStorage.setItem('adminToken', adminToken);
       showDashboard();
-    } else {
-      alert("Login failed: " + data.message);
     }
+  } else {
+    alert(data.message);
   }
 }
 
@@ -60,21 +49,15 @@ function showDashboard() {
   document.getElementById('auth-box').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 
-  // Initial loads
   loadAdminCategories();
   loadAdminProducts();
   loadAdminOrders();
+  loadAdminBanners();
   loadAdminMessages();
 
-  // Set default calendar picker to today (YYYY-MM-DD)
-  const todayStr = new Date().toISOString().split('T')[0];
-  const picker = document.getElementById('delivery-calendar-picker');
-  if (picker) picker.value = todayStr;
-
-  // Auto-polling interval: 4 seconds (Auto refresh bina page reload kiye)
   if (!liveOrdersPoller) {
     liveOrdersPoller = setInterval(() => {
-      loadAdminOrders(true); // background silent update
+      loadAdminOrders(true);
       loadAdminMessages(true);
     }, 4000);
   }
@@ -92,9 +75,7 @@ function switchSection(secId, btn) {
   document.getElementById(secId).classList.add('active');
   btn.classList.add('active');
 
-  if (secId === 'calendar-sec') {
-    filterDeliveredByCalendar();
-  }
+  if (secId === 'calendar-sec') filterDeliveredByCalendar();
 }
 
 function toggleAccordion(id) {
@@ -102,133 +83,168 @@ function toggleAccordion(id) {
   el.style.display = el.style.display === 'block' ? 'none' : 'block';
 }
 
-// ---------------- LIVE ORDERS & CALENDAR LOGIC ---------------- //
-
+// ---------------- ORDERS: ONLY PENDING LIVE LIST ---------------- //
 async function loadAdminOrders(isSilent = false) {
   try {
     const res = await fetch('/api/orders');
     const orders = await res.json();
-    
-    // Check if new orders arrived to prevent unnecessary re-renders
-    if (JSON.stringify(allOrdersCache) === JSON.stringify(orders)) {
-      return;
-    }
+
+    if (JSON.stringify(allOrdersCache) === JSON.stringify(orders)) return;
 
     allOrdersCache = orders;
-    renderActiveOrders(allOrdersCache);
-    updatePendingBadge(allOrdersCache);
+    renderPendingOrders(allOrdersCache);
 
-    // Agar calendar tab active hai toh use bhi sync karein
+    const pendingOrders = allOrdersCache.filter(o => !o.delivered);
+    document.getElementById('pending-orders-badge').innerText = pendingOrders.length;
+
     if (document.getElementById('calendar-sec').classList.contains('active')) {
       filterDeliveredByCalendar();
     }
   } catch (err) {
-    if (!isSilent) console.error("Orders sync error:", err);
+    if (!isSilent) console.error(err);
   }
 }
 
-function updatePendingBadge(orders) {
-  const pendingCount = orders.filter(o => !o.delivered).length;
-  const badge = document.getElementById('pending-orders-badge');
-  if (badge) badge.innerText = pendingCount;
-}
-
-function renderActiveOrders(orders) {
+function renderPendingOrders(orders) {
   const box = document.getElementById('orders-list');
-  if (!box) return;
+  // Sirf non-delivered (pending) orders yahan dikhenge
+  const pendingOnly = orders.filter(o => !o.delivered);
 
-  if (orders.length === 0) {
-    box.innerHTML = "<p style='color: #64748b;'>Abhi tak koi order nahi aaya hai.</p>";
+  if (pendingOnly.length === 0) {
+    box.innerHTML = "<p style='color: #64748b; padding: 12px 0;'>Koi naya pending order nahi hai.</p>";
     return;
   }
 
-  box.innerHTML = orders.map(o => {
+  box.innerHTML = pendingOnly.map(o => {
     const itemsText = (o.items || []).map(i => `${i.name} (x${i.quantity}) - ₹${i.price * i.quantity}`).join('<br>');
     return `
-      <div class="order-item-box ${o.delivered ? 'delivered-card' : ''}">
-        <div class="order-header-line">
+      <div class="order-item-box" id="order-card-${o.orderId}">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
           <strong>Order ID: ${o.orderId}</strong>
-          <span class="status-tag ${o.delivered ? 'delivered' : 'pending'}">
-            ${o.delivered ? '✅ Delivered' : '⏳ Pending'}
-          </span>
+          <span style="background: #fef3c7; color: #b45309; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">⏳ Pending</span>
         </div>
-        <div style="font-size: 13px; color: #475569; margin-bottom: 6px;">
-          <strong>Customer:</strong> ${o.customer ? o.customer.name : 'N/A'} (📞 ${o.customer ? o.customer.phone : 'N/A'})<br>
-          <strong>Address:</strong> ${o.customer ? `${o.customer.houseNo || ''}, ${o.customer.address}, ${o.customer.city || ''}` : 'N/A'}<br>
-          <strong>Order Time:</strong> ${o.date || 'N/A'}
-          ${o.delivered && o.deliveredTimestamp ? `<br><strong style="color: #047857;">Delivered On:</strong> ${o.deliveredTimestamp}` : ''}
+        <div style="font-size: 13px; color: #475569; margin: 6px 0;">
+          <strong>Customer:</strong> ${o.customer.name} (📞 ${o.customer.phone})<br>
+          <strong>Address:</strong> ${o.customer.houseNo || ''}, ${o.customer.address}, ${o.customer.city || ''}<br>
+          <strong>Time:</strong> ${o.date}
         </div>
         <div style="background: #f8fafc; padding: 8px; border-radius: 6px; font-size: 13px; margin-bottom: 8px;">
-          <strong>Items:</strong><br>${itemsText}
+          ${itemsText}
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <strong style="font-size: 15px;">Total: ₹${o.total}</strong>
-          <button class="primary-btn ${o.delivered ? 'green' : 'blue'}" style="width: auto; padding: 6px 14px; font-size: 13px;" onclick="toggleDelivery('${o.orderId}')">
-            ${o.delivered ? 'Undo to Pending ↺' : 'Mark as Delivered ✔'}
-          </button>
+        <div style="font-size: 15px; font-weight: bold; margin-bottom: 10px;">
+          Total: ₹${o.total}
+        </div>
+        <div class="order-actions-row">
+          <button class="primary-btn purple" onclick="printOrderBill('${o.orderId}')">🖨️ Print Bill</button>
+          <button class="primary-btn amber" onclick="shareOrderBillWhatsApp('${o.orderId}')">📲 Share WhatsApp</button>
+          <button class="primary-btn green" onclick="markDelivered('${o.orderId}')">✔ Mark Delivered</button>
         </div>
       </div>
     `;
   }).join('');
 }
 
-async function toggleDelivery(orderId) {
-  try {
-    const res = await fetch('/api/orders/toggle-delivery', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId })
-    });
-    const data = await res.json();
-    if (data.success) {
-      loadAdminOrders();
-    }
-  } catch (err) {
-    alert("Delivery status update failed!");
+async function markDelivered(orderId) {
+  const res = await fetch('/api/orders/toggle-delivery', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId })
+  });
+  const data = await res.json();
+  if (data.success) {
+    // Turant screen se hat jayega
+    loadAdminOrders();
   }
 }
 
-// Calendar Archive Filter
+// ---------------- BILL PRINT & WHATSAPP SHARE ---------------- //
+function printOrderBill(orderId) {
+  const order = allOrdersCache.find(o => o.orderId === orderId);
+  if (!order) return;
+
+  const printArea = document.getElementById('print-area');
+  printArea.style.display = 'block';
+
+  let itemsRows = (order.items || []).map(i => `
+    <tr>
+      <td style="padding: 4px;">${i.name}</td>
+      <td style="text-align: center; padding: 4px;">${i.quantity}</td>
+      <td style="text-align: right; padding: 4px;">₹${i.price * i.quantity}</td>
+    </tr>
+  `).join('');
+
+  printArea.innerHTML = `
+    <div style="max-width: 320px; margin: auto; border: 1px dashed #000; padding: 15px; font-family: monospace;">
+      <h2 style="text-align: center; margin: 0;">SMART STORE</h2>
+      <p style="text-align: center; margin: 4px 0;">Retail Invoice / Cash Memo</p>
+      <hr style="border: 0.5px dashed #000;">
+      <p style="margin: 2px 0;"><strong>Order ID:</strong> ${order.orderId}</p>
+      <p style="margin: 2px 0;"><strong>Date:</strong> ${order.date}</p>
+      <p style="margin: 2px 0;"><strong>Customer:</strong> ${order.customer.name}</p>
+      <p style="margin: 2px 0;"><strong>Phone:</strong> ${order.customer.phone}</p>
+      <p style="margin: 2px 0;"><strong>Address:</strong> ${order.customer.houseNo || ''}, ${order.customer.address}, ${order.customer.city || ''}</p>
+      <hr style="border: 0.5px dashed #000;">
+      <table style="width: 100%; font-size: 13px;">
+        <thead>
+          <tr><th style="text-align: left;">Item</th><th>Qty</th><th style="text-align: right;">Amount</th></tr>
+        </thead>
+        <tbody>
+          ${itemsRows}
+        </tbody>
+      </table>
+      <hr style="border: 0.5px dashed #000;">
+      <h3 style="text-align: right; margin: 6px 0;">TOTAL: ₹${order.total}</h3>
+      <p style="text-align: center; margin-top: 15px;">Thank You for Shopping With Us!</p>
+    </div>
+  `;
+
+  window.print();
+  printArea.style.display = 'none';
+}
+
+function shareOrderBillWhatsApp(orderId) {
+  const order = allOrdersCache.find(o => o.orderId === orderId);
+  if (!order) return;
+
+  const itemsText = (order.items || []).map((i, idx) => `${idx + 1}. ${i.name} (x${i.quantity}) - ₹${i.price * i.quantity}`).join('%0A');
+  const message = `*🧾 SMART STORE - ORDER BILL*%0A---------------------------%0A*Order ID:* ${order.orderId}%0A*Customer:* ${order.customer.name}%0A*Address:* ${order.customer.houseNo || ''}, ${order.customer.address}, ${order.customer.city || ''}%0A*Date:* ${order.date}%0A---------------------------%0A*Items:*%0A${itemsText}%0A---------------------------%0A*TOTAL AMOUNT:* ₹${order.total}%0A%0A_Thank you for ordering with us!_`;
+
+  const phoneClean = order.customer.phone.replace(/[^0-9]/g, '');
+  window.open(`https://api.whatsapp.com/send?phone=91${phoneClean}&text=${message}`, '_blank');
+}
+
+// ---------------- DELIVERED CALENDAR ARCHIVE ---------------- //
 function filterDeliveredByCalendar() {
   const picker = document.getElementById('delivery-calendar-picker');
   const selectedDate = picker ? picker.value : "";
   const container = document.getElementById('calendar-delivered-list');
   const summary = document.getElementById('calendar-delivered-summary');
 
-  if (!container) return;
-
-  // Filter only delivered orders
   let deliveredOrders = allOrdersCache.filter(o => o.delivered);
 
   if (selectedDate) {
     deliveredOrders = deliveredOrders.filter(o => o.deliveredDate === selectedDate);
-    summary.innerHTML = `📅 Date: <u>${selectedDate}</u> ko kul <strong>${deliveredOrders.length}</strong> items deliver huye:`;
+    summary.innerHTML = `📅 Date <u>${selectedDate}</u> ko deliver huye orders: <strong>${deliveredOrders.length}</strong>`;
   } else {
-    summary.innerHTML = `All Time Delivered Orders: <strong>${deliveredOrders.length}</strong>`;
+    summary.innerHTML = `Kul Delivered Orders: <strong>${deliveredOrders.length}</strong>`;
   }
 
   if (deliveredOrders.length === 0) {
-    container.innerHTML = `<p style="color: #64748b; padding: 12px 0;">Is date ko koi delivered order record nahi mila.</p>`;
+    container.innerHTML = "<p style='color: #64748b;'>Is date ko koi delivered order nahi mila.</p>";
     return;
   }
 
-  container.innerHTML = deliveredOrders.map(o => {
-    const itemsList = (o.items || []).map(i => `<li>${i.name} — Qty: ${i.quantity} (₹${i.price * i.quantity})</li>`).join('');
-    return `
-      <div class="order-item-box delivered-card">
-        <div class="order-header-line">
-          <strong>${o.orderId}</strong>
-          <span style="font-size: 12px; font-weight: bold; color: #047857;">Delivered Time: ${o.deliveredTimestamp || o.deliveredDate}</span>
-        </div>
-        <p style="font-size: 13px; margin: 4px 0;">Customer: <strong>${o.customer.name}</strong> (${o.customer.phone})</p>
-        <p style="font-size: 12px; color: #475569;">Delivery Address: ${o.customer.houseNo || ''}, ${o.customer.address}, ${o.customer.city || ''}</p>
-        <ul style="margin: 8px 0 8px 20px; font-size: 13px;">
-          ${itemsList}
-        </ul>
-        <div style="font-weight: bold; text-align: right;">Total Amount: ₹${o.total}</div>
+  container.innerHTML = deliveredOrders.map(o => `
+    <div class="order-item-box delivered-card">
+      <div style="display: flex; justify-content: space-between;">
+        <strong>${o.orderId}</strong>
+        <span style="color: #047857; font-weight: bold; font-size: 12px;">Delivered on: ${o.deliveredTimestamp || o.deliveredDate}</span>
       </div>
-    `;
-  }).join('');
+      <p style="margin: 4px 0; font-size: 13px;">Customer: <strong>${o.customer.name}</strong> (${o.customer.phone})</p>
+      <p style="font-size: 12px; color: #475569;">${o.customer.houseNo || ''}, ${o.customer.address}</p>
+      <div style="font-weight: bold; margin-top: 6px;">Total: ₹${o.total}</div>
+    </div>
+  `).join('');
 }
 
 function resetCalendarFilter() {
@@ -237,16 +253,10 @@ function resetCalendarFilter() {
   filterDeliveredByCalendar();
 }
 
-// ---------------- PRODUCT & CATEGORY MANAGEMENT ---------------- //
-
+// ---------------- PRODUCTS & BEST DEALS ---------------- //
 function handleImageSelection(event) {
   const file = event.target.files[0];
   if (!file) return;
-
-  if (file.size > 5 * 1024 * 1024) {
-    alert("Photo 5MB se chhoti honi chahiye!");
-    return;
-  }
 
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -261,28 +271,27 @@ async function addProduct() {
   const name = document.getElementById('prod-name').value.trim();
   const price = document.getElementById('prod-price').value.trim();
   const category = document.getElementById('prod-category').value;
+  const isBestDeal = document.getElementById('prod-best-deal').checked;
   const image = selectedImageBase64;
 
-  if (!name || !price || !category || !image) {
-    return alert("Saari details bharein aur photo select karein!");
-  }
+  if (!name || !price || !category || !image) return alert("Saari details bharein!");
 
   const res = await fetch('/api/products', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
-    body: JSON.stringify({ name, price, category, image })
+    body: JSON.stringify({ name, price, category, image, isBestDeal })
   });
+
   const data = await res.json();
   if (data.success) {
     alert("Product added successfully!");
     document.getElementById('prod-name').value = '';
     document.getElementById('prod-price').value = '';
+    document.getElementById('prod-best-deal').checked = false;
     document.getElementById('image-preview-wrapper').style.display = 'none';
     selectedImageBase64 = "";
     toggleAccordion('add-prod-collapse');
     loadAdminProducts();
-  } else {
-    alert(data.message);
   }
 }
 
@@ -294,14 +303,12 @@ async function loadAdminProducts() {
 
 function renderProductsList(list) {
   const box = document.getElementById('admin-products-list');
-  if (list.length === 0) return box.innerHTML = "<p>No products added yet.</p>";
-
   box.innerHTML = list.map(p => `
     <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 10px 0;">
       <div style="display: flex; align-items: center; gap: 12px;">
         <img src="${p.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
         <div>
-          <strong>${p.name}</strong>
+          <strong>${p.name}</strong> ${p.isBestDeal ? '<span class="best-deal-tag">🔥 Best Deal</span>' : ''}
           <div style="font-size: 12px; color: #64748b;">${p.category} | ₹${p.price}</div>
         </div>
       </div>
@@ -316,11 +323,49 @@ function filterAdminProducts() {
 }
 
 async function deleteProduct(id) {
-  if (!confirm("Are you sure you want to delete this product?")) return;
+  if (!confirm("Are you sure?")) return;
   await fetch(`/api/products/${id}`, { method: 'DELETE', headers: { 'Authorization': adminToken } });
   loadAdminProducts();
 }
 
+// ---------------- MULTI-BANNER MANAGEMENT ---------------- //
+async function loadAdminBanners() {
+  const res = await fetch('/api/banners');
+  const banners = await res.json();
+  const box = document.getElementById('banners-list');
+  box.innerHTML = banners.map(b => `
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="${b.imageUrl}" style="width: 80px; height: 40px; object-fit: cover; border-radius: 4px;">
+        <span>${b.title || 'Untitled Banner'}</span>
+      </div>
+      <button class="logout-btn" style="padding: 4px 10px;" onclick="deleteBanner('${b._id}')">Remove</button>
+    </div>
+  `).join('');
+}
+
+async function addBanner() {
+  const imageUrl = document.getElementById('banner-img-url').value.trim();
+  const title = document.getElementById('banner-title').value.trim();
+  if (!imageUrl) return alert("Banner Image URL bharein!");
+
+  await fetch('/api/banners', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl, title })
+  });
+
+  document.getElementById('banner-img-url').value = '';
+  document.getElementById('banner-title').value = '';
+  loadAdminBanners();
+}
+
+async function deleteBanner(id) {
+  await fetch(`/api/banners/${id}`, { method: 'DELETE' });
+  loadAdminBanners();
+}
+
+// ---------------- CATEGORIES & SUPPORT ---------------- //
 async function loadAdminCategories() {
   const res = await fetch('/api/categories');
   const cats = await res.json();
@@ -330,7 +375,7 @@ async function loadAdminCategories() {
   if (list) {
     list.innerHTML = cats.map(c => `
       <div style="display: inline-block; background: #e2e8f0; padding: 4px 10px; border-radius: 12px; margin: 4px; font-size: 13px;">
-        ${c} <span style="cursor: pointer; color: red; font-weight: bold; margin-left: 4px;" onclick="deleteCategory('${c}')">&times;</span>
+        ${c} <span style="cursor: pointer; color: red; font-weight: bold;" onclick="deleteCategory('${c}')">&times;</span>
       </div>
     `).join('');
   }
@@ -349,20 +394,12 @@ async function deleteCategory(name) {
   loadAdminCategories();
 }
 
-async function updateBanner() {
-  const imageUrl = document.getElementById('banner-img-url').value.trim();
-  const title = document.getElementById('banner-title').value.trim();
-  await fetch('/api/banner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, title }) });
-  alert("Banner Updated!");
-}
-
 async function loadAdminMessages(isSilent = false) {
   try {
     const res = await fetch('/api/support/messages');
     const msgs = await res.json();
     const box = document.getElementById('messages-list');
     if (box) {
-      if (msgs.length === 0) return box.innerHTML = "<p>No support messages yet.</p>";
       box.innerHTML = msgs.map(m => `
         <div style="border-bottom: 1px solid #f1f5f9; padding: 8px 0;">
           <strong>${m.customerName}:</strong> ${m.text} <span style="font-size: 11px; color:#64748b;">(${m.time})</span>
@@ -370,6 +407,6 @@ async function loadAdminMessages(isSilent = false) {
       `).join('');
     }
   } catch (e) {
-    if (!isSilent) console.error("Chat sync error:", e);
+    if (!isSilent) console.error(e);
   }
 }
