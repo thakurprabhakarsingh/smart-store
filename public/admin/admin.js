@@ -146,7 +146,7 @@ function renderProductsList(list) {
           <div style="font-size: 12px; color: #64748b;">${p.category} | ₹${p.price}</div>
         </div>
       </div>
-      <button class="logout-btn" style="background:#ef4444;" onclick="deleteProduct('${p.id}')">Delete</button>
+      <button class="logout-btn" onclick="deleteProduct('${p.id}')">Delete</button>
     </div>
   `).join('');
 }
@@ -169,8 +169,8 @@ async function loadAdminCategories() {
   const list = document.getElementById('category-list');
   select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
   list.innerHTML = cats.map(c => `
-    <div style="display: inline-block; background: #e2e8f0; padding: 4px 10px; border-radius: 12px; margin: 4px;">
-      ${c} <span style="cursor: pointer; color: red;" onclick="deleteCategory('${c}')">&times;</span>
+    <div style="display: inline-block; background: #e2e8f0; padding: 4px 10px; border-radius: 12px; margin: 4px; font-size: 13px;">
+      ${c} <span style="cursor: pointer; color: red; font-weight: bold; margin-left: 4px;" onclick="deleteCategory('${c}')">&times;</span>
     </div>
   `).join('');
 }
@@ -198,12 +198,15 @@ async function updateBanner() {
 async function loadAdminOrders() {
   const res = await fetch('/api/orders');
   const orders = await res.json();
-  document.getElementById('orders-list').innerHTML = orders.map(o => `
+  const box = document.getElementById('orders-list');
+  if (orders.length === 0) return box.innerHTML = "<p>No orders placed yet.</p>";
+
+  box.innerHTML = orders.map(o => `
     <div style="border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
       <strong>Order: ${o.orderId}</strong> - Total: ₹${o.total}
       <div>Customer: ${o.customer.name} (${o.customer.phone})</div>
       <div>Address: ${o.customer.houseNo || ''}, ${o.customer.address}, ${o.customer.city || ''}</div>
-      <button class="primary-btn" style="width: auto; margin-top: 6px;" onclick="toggleDelivery('${o.orderId}')">
+      <button class="primary-btn blue" style="width: auto; margin-top: 8px; padding: 6px 12px;" onclick="toggleDelivery('${o.orderId}')">
         ${o.delivered ? 'Status: Delivered ✅' : 'Status: Mark Delivered ⏳'}
       </button>
     </div>
@@ -218,8 +221,11 @@ async function toggleDelivery(orderId) {
 async function loadAdminMessages() {
   const res = await fetch('/api/support/messages');
   const msgs = await res.json();
-  document.getElementById('messages-list').innerHTML = msgs.map(m => `
-    <div style="border-bottom: 1px solid #f1f5f9; padding: 6px 0;">
+  const box = document.getElementById('messages-list');
+  if (msgs.length === 0) return box.innerHTML = "<p>No support messages yet.</p>";
+
+  box.innerHTML = msgs.map(m => `
+    <div style="border-bottom: 1px solid #f1f5f9; padding: 8px 0;">
       <strong>${m.customerName}:</strong> ${m.text} <span style="font-size: 11px; color:#64748b;">(${m.time})</span>
     </div>
   `).join('');
