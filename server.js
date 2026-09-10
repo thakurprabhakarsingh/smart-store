@@ -17,15 +17,12 @@ app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 app.post('/api/auth/firebase-login', async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone) {
-      return res.status(400).json({ success: false, message: 'Phone number zaroori hai!' });
-    }
+    if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai!' });
 
     let user = await User.findOne({ phone });
     if (!user) {
       user = await User.create({ phone, profileCompleted: false });
     }
-
     res.json({ success: true, user });
   } catch (err) {
     console.error("Firebase Login Sync Error:", err);
@@ -44,7 +41,6 @@ app.post('/api/auth/update-profile', async (req, res) => {
     { name, houseNo, city, address, profileCompleted: true },
     { new: true }
   );
-
   res.json({ success: true, user });
 });
 
@@ -83,7 +79,7 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// ---------------- MULTI-BANNER SLIDER ROUTES ---------------- //
+// ---------------- CAROUSEL BANNER ROUTES ---------------- //
 app.get('/api/banners', async (req, res) => {
   try {
     const banners = await Banner.find();
@@ -135,7 +131,7 @@ app.delete('/api/categories/:name', async (req, res) => {
   res.json({ success: true });
 });
 
-// ---------------- PRODUCT & BEST DEAL ROUTES ---------------- //
+// ---------------- PRODUCT ROUTES ---------------- //
 app.get('/api/products', async (req, res) => {
   const { category, q, bestDeal } = req.query;
   let filter = {};
@@ -169,7 +165,7 @@ app.delete('/api/products/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-// ---------------- ORDER ROUTES ---------------- //
+// ---------------- ORDERS ROUTES ---------------- //
 app.post('/api/checkout', async (req, res) => {
   const { customer, cart } = req.body;
   const orderId = 'ORD-' + Date.now().toString().slice(-6);
@@ -207,7 +203,7 @@ app.get('/api/orders/my-orders', async (req, res) => {
   res.json(await Order.find({ customerId: req.query.customerId }).sort({ _id: -1 }));
 });
 
-// ---------------- SUPPORT MESSAGES ---------------- //
+// ---------------- SUPPORT CHAT ---------------- //
 app.get('/api/support/messages', async (req, res) => {
   const filter = req.query.customerId ? { customerId: req.query.customerId } : {};
   res.json(await Message.find(filter).sort({ _id: 1 }));
@@ -218,7 +214,7 @@ app.post('/api/support/send', async (req, res) => {
   res.json({ success: true });
 });
 
-// ---------------- STATIC PAGES ---------------- //
+// ---------------- SERVE STATIC ENTRY ---------------- //
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html')));
 

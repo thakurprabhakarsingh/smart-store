@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartStore - Online Shopping</title>
+  <title>Smart Store - Shopping Portal</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <!-- Firebase App & Auth SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -14,127 +13,128 @@
 <body>
 
   <!-- Header -->
-  <header class="navbar">
-    <div class="nav-brand">
-      <h2><i class="fa-solid fa-store"></i> SmartStore</h2>
+  <header>
+    <div class="brand">🛒 SmartStore</div>
+    <div class="search-bar-wrap">
+      <input type="text" id="search-input" placeholder="🔍 Search products..." oninput="handleSearch()">
     </div>
-    <div class="search-bar">
-      <input type="text" id="search-input" placeholder="Search products...">
-      <button id="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
-    </div>
-    <div class="nav-actions">
-      <button id="auth-btn" class="btn btn-outline"><i class="fa-solid fa-user"></i> <span id="auth-btn-text">Login</span></button>
-      <button id="cart-btn" class="btn btn-primary"><i class="fa-solid fa-cart-shopping"></i> Cart (<span id="cart-count">0</span>)</button>
+    <div class="header-right" id="user-header-status">
+      <button class="nav-btn" onclick="openAuthModal()">Login</button>
     </div>
   </header>
 
-  <!-- Banner Slider -->
-  <div class="slider-container" id="banner-slider">
-    <div class="slider-wrapper" id="slider-wrapper"></div>
-    <button class="slider-btn prev" id="slider-prev"><i class="fa-solid fa-chevron-left"></i></button>
-    <button class="slider-btn next" id="slider-next"><i class="fa-solid fa-chevron-right"></i></button>
+  <!-- 3-Banner Auto-Sliding Carousel -->
+  <div class="carousel-container">
+    <div class="carousel-slider" id="carousel-slider"></div>
+    <div class="carousel-dots" id="carousel-dots"></div>
   </div>
 
-  <!-- Category Filter Bar -->
-  <section class="categories-bar" id="category-chips">
-    <button class="chip active" data-category="All">All Items</button>
-  </section>
-
-  <!-- Best Deals Carousel -->
-  <section class="section-container" id="best-deals-section">
-    <div class="section-title">
-      <h3>🔥 Today's Best Deals</h3>
+  <div class="container main-content">
+    <!-- Best Deals Side Scroll -->
+    <div id="best-deals-wrapper" style="display: none;">
+      <h3 class="section-title" style="color: #dc2626;">🔥 Today's Best Deals</h3>
+      <div class="best-deals-scroll" id="best-deals-list"></div>
     </div>
-    <div class="products-grid deals-row" id="best-deals-grid"></div>
-  </section>
 
-  <!-- All Products Grid -->
-  <section class="section-container">
-    <div class="section-title">
-      <h3>🛍️ Explore Products</h3>
-    </div>
-    <div class="products-grid" id="products-grid"></div>
-  </section>
+    <!-- Categories Side Scroll -->
+    <h3 class="section-title">Shop by Category</h3>
+    <div class="category-chips-bar" id="category-chips"></div>
 
-  <!-- Firebase Recaptcha Container (Invisible) -->
-  <div id="recaptcha-container"></div>
+    <!-- Products Grid -->
+    <h3 class="section-title" style="margin-top: 25px;">Available Products</h3>
+    <div class="grid" id="product-list"></div>
+  </div>
 
-  <!-- Auth Modal -->
-  <div class="modal" id="auth-modal">
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <button class="b-tab active" onclick="navigateTab('home', this)">
+      <span class="icon">🏠</span>
+      <span class="lbl">Home</span>
+    </button>
+    <button class="b-tab" onclick="navigateTab('cart', this)">
+      <span class="icon">🛒 <span class="badge" id="cart-count">0</span></span>
+      <span class="lbl">Cart</span>
+    </button>
+    <button class="b-tab" onclick="navigateTab('orders', this)">
+      <span class="icon">📦</span>
+      <span class="lbl">Orders</span>
+    </button>
+    <button class="b-tab" onclick="navigateTab('profile', this)">
+      <span class="icon">👤</span>
+      <span class="lbl">Profile</span>
+    </button>
+    <button class="b-tab" onclick="navigateTab('chat', this)">
+      <span class="icon">💬</span>
+      <span class="lbl">Connect</span>
+    </button>
+  </nav>
+
+  <!-- Phone OTP Modal -->
+  <div id="auth-modal" class="modal">
     <div class="modal-content">
-      <span class="close-btn" id="close-auth-modal">&times;</span>
-      
-      <!-- Step 1: Phone Input -->
-      <div id="auth-phone-step">
-        <h3>Login / Register</h3>
-        <p>Apna 10-digit mobile number enter karein</p>
-        <div class="form-group">
-          <input type="tel" id="auth-phone" placeholder="Mobile Number (e.g. 9876543210)" maxlength="10">
-        </div>
-        <button id="send-otp-btn" class="btn btn-primary btn-block">Send OTP</button>
+      <span class="close" onclick="closeAuthModal()">&times;</span>
+      <h3>📱 Mobile Login</h3>
+      <p style="font-size: 13px; color: #64748b;">10-digit mobile number se verify karein</p>
+
+      <!-- Invisible reCAPTCHA container -->
+      <div id="recaptcha-container"></div>
+
+      <div id="phone-step-1">
+        <input type="tel" id="auth-phone" maxlength="10" placeholder="Enter 10-digit mobile number">
+        <button class="primary-btn" id="send-otp-btn" onclick="sendOtp()">Send OTP</button>
       </div>
 
-      <!-- Step 2: OTP Verification -->
-      <div id="auth-otp-step" style="display: none;">
-        <h3>Verify OTP</h3>
-        <p>Aapke mobile par 6-digit OTP bheja gaya hai</p>
-        <div class="form-group">
-          <input type="text" id="auth-otp" placeholder="Enter 6-Digit OTP" maxlength="6">
-        </div>
-        <button id="verify-otp-btn" class="btn btn-success btn-block">Verify OTP</button>
-        <button id="back-to-phone-btn" class="btn btn-link btn-block">Number Badlein</button>
-      </div>
-
-      <!-- Step 3: Complete Profile (First Time User) -->
-      <div id="auth-profile-step" style="display: none;">
-        <h3>Complete Profile</h3>
-        <p>Delivery details enter karein</p>
-        <div class="form-group">
-          <input type="text" id="profile-name" placeholder="Full Name">
-        </div>
-        <div class="form-group">
-          <input type="text" id="profile-house" placeholder="House / Flat No.">
-        </div>
-        <div class="form-group">
-          <input type="text" id="profile-city" placeholder="City">
-        </div>
-        <div class="form-group">
-          <textarea id="profile-address" placeholder="Full Street Address" rows="3"></textarea>
-        </div>
-        <button id="save-profile-btn" class="btn btn-primary btn-block">Save Details & Continue</button>
+      <div id="phone-step-2" style="display: none;">
+        <input type="text" id="auth-otp" maxlength="6" placeholder="Enter 6-digit OTP">
+        <button class="primary-btn" id="verify-otp-btn" onclick="verifyOtp()">Verify OTP</button>
       </div>
     </div>
   </div>
 
-  <!-- Cart Drawer -->
-  <div class="drawer" id="cart-drawer">
-    <div class="drawer-header">
-      <h3>Your Cart</h3>
-      <span class="close-btn" id="close-cart-drawer">&times;</span>
-    </div>
-    <div class="drawer-body" id="cart-items">
-      <p class="empty-msg">Aapka cart khali hai.</p>
-    </div>
-    <div class="drawer-footer">
-      <div class="total-row">
-        <span>Total Amount:</span>
-        <span id="cart-total-price">₹0</span>
-      </div>
-      <button id="checkout-btn" class="btn btn-primary btn-block">Place Order (COD)</button>
+  <!-- Profile Setup Modal -->
+  <div id="profile-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeProfileModal()">&times;</span>
+      <h3>👤 Customer Profile</h3>
+      <p style="font-size: 13px; color: #64748b;">Apna delivery address save karein</p>
+      <input type="text" id="prof-name" placeholder="Full Name">
+      <input type="text" id="prof-phone" readonly style="background: #f1f5f9;">
+      <input type="text" id="prof-house" placeholder="House / Flat / Gali No.">
+      <input type="text" id="prof-city" placeholder="City / District">
+      <textarea id="prof-address" rows="3" placeholder="Complete Street Address & Landmark"></textarea>
+      <button class="primary-btn checkout" onclick="saveProfile()">Save Profile</button>
     </div>
   </div>
 
-  <!-- Floating Customer Support Widget -->
-  <div class="support-widget" id="support-widget">
-    <div class="support-header" id="toggle-support">
-      <span><i class="fa-solid fa-headset"></i> Support Help</span>
-      <i class="fa-solid fa-chevron-up" id="support-chevron"></i>
+  <!-- Cart Modal -->
+  <div id="cart-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="document.getElementById('cart-modal').style.display='none'">&times;</span>
+      <h3>🛍️ Your Shopping Cart</h3>
+      <div id="cart-items"></div>
+      <div style="font-weight: bold; font-size: 17px; margin: 15px 0;">Total: ₹<span id="cart-total">0</span></div>
+      <button class="primary-btn checkout" onclick="checkout()">Proceed to Checkout</button>
     </div>
-    <div class="support-body" id="support-body" style="display: none;">
-      <div class="support-messages" id="support-messages"></div>
-      <div class="support-input-row">
-        <input type="text" id="support-input" placeholder="Type a message...">
-        <button id="support-send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+
+  <!-- Orders Modal -->
+  <div id="orders-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="document.getElementById('orders-modal').style.display='none'">&times;</span>
+      <h3>📦 My Orders</h3>
+      <div id="my-orders-list"></div>
+    </div>
+  </div>
+
+  <!-- Connect / Support Modal -->
+  <div id="chat-modal" class="modal">
+    <div class="modal-content" style="height: 480px; display: flex; flex-direction: column;">
+      <span class="close" onclick="document.getElementById('chat-modal').style.display='none'">&times;</span>
+      <h3>💬 Customer Support</h3>
+      <div class="chat-messages" id="chat-messages" style="flex: 1; overflow-y: auto; background: #f8fafc; padding: 10px; border-radius: 8px;"></div>
+      <div style="display: flex; gap: 8px; margin-top: 10px;">
+        <input type="text" id="chat-input" placeholder="Type query...">
+        <button class="primary-btn" style="width: auto;" onclick="sendChatMessage()">Send</button>
       </div>
     </div>
   </div>
