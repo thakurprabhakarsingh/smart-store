@@ -1,6 +1,6 @@
 // ==================== FIREBASE CONFIGURATION ==================== //
 const firebaseConfig = {
-  apiKey: "AIzaSyBAyIUZIvEJ4Qef2TuG8NrZcpPKLyuR6F0",
+  apiKey: "AIzaSyBAyIUzIvEJ4Qef2TuG8NrZcpPKLyuR6F0",
   authDomain: "smartstore-auth.firebaseapp.com",
   projectId: "smartstore-auth",
   storageBucket: "smartstore-auth.firebasestorage.app",
