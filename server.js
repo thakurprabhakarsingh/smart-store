@@ -13,73 +13,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
-const otpStore = new Map();
-
-// Real SMS Delivery via Fast2SMS Quick Route
-async function sendRealSMS(phone, otp) {
-  if (process.env.FAST2SMS_API_KEY) {
-    try {
-      const messageText = `Aapka SmartStore Login OTP hai: ${otp}. Kripya ise kisi se share na karein.`;
-      const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=q&message=${encodeURIComponent(messageText)}&language=english&flash=0&numbers=${phone}`;
-
-      const response = await fetch(url);
-      const result = await response.json();
-      console.log("[FAST2SMS GATEWAY RESPONSE]:", result);
-
-      if (result && result.return === true) {
-        return true;
-      } else {
-        console.error("Fast2SMS Rejection Reason:", result.message || result);
-        return false;
-      }
-    } catch (e) {
-      console.error("SMS Gateway Fetch Error:", e);
-      return false;
+// ---------------- FIREBASE SYNC & USER AUTH ROUTES ---------------- //
+app.post('/api/auth/firebase-login', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number zaroori hai!' });
     }
+
+    let user = await User.findOne({ phone });
+    if (!user) {
+      user = await User.create({ phone, profileCompleted: false });
+    }
+
+    res.json({ success: true, user });
+  } catch (err) {
+    console.error("Firebase Login Sync Error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
-  return false;
-}
-
-// ---------------- CUSTOMER AUTH ROUTES ---------------- //
-app.post('/api/auth/send-otp', async (req, res) => {
-  const { phone } = req.body;
-  if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
-    return res.status(400).json({ success: false, message: 'Kripya 10-digit valid mobile number dalein!' });
-  }
-
-  const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore.set(phone, { otp: generatedOtp, expires: Date.now() + 5 * 60 * 1000 });
-
-  const smsSent = await sendRealSMS(phone, generatedOtp);
-  console.log(`[SMS AUTH] Phone: ${phone} | OTP: ${generatedOtp} | Sent: ${smsSent}`);
-
-  res.json({
-    success: true,
-    message: smsSent ? 'OTP mobile number par bhej diya gaya hai!' : 'Dev Mode OTP: ' + generatedOtp,
-    devOtp: smsSent ? null : generatedOtp
-  });
-});
-
-app.post('/api/auth/verify-otp', async (req, res) => {
-  const { phone, otp } = req.body;
-  const stored = otpStore.get(phone);
-
-  if (!stored || stored.expires < Date.now()) {
-    return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai, dubara mangwayein!' });
-  }
-
-  if (stored.otp !== otp) {
-    return res.status(400).json({ success: false, message: 'Galat OTP darj kiya gaya hai!' });
-  }
-
-  otpStore.delete(phone);
-
-  let user = await User.findOne({ phone });
-  if (!user) {
-    user = await User.create({ phone, profileCompleted: false });
-  }
-
-  res.json({ success: true, user });
 });
 
 app.post('/api/auth/update-profile', async (req, res) => {

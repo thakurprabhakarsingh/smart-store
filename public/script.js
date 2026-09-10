@@ -1,308 +1,461 @@
-let currentCategory = 'All';
-let currentUser = JSON.parse(localStorage.getItem('smartStoreUser')) || null;
-let cart = [];
-let pendingPhone = "";
-let currentBannerIndex = 0;
-let bannerInterval = null;
-
-window.onload = () => {
-  loadBannersSlider();
-  loadBestDeals();
-  loadCategories();
-  loadProducts();
-  updateUserUI();
-  updateCartUI();
+// ==================== FIREBASE CONFIGURATION ==================== //
+const firebaseConfig = {
+  apiKey: "AIzaSyBAYIUZIvEJ4Qef2TuG8NrZcpPKLyuR6F0",
+  authDomain: "smartstore-auth.firebaseapp.com",
+  projectId: "smartstore-auth",
+  storageBucket: "smartstore-auth.firebasestorage.app",
+  messagingSenderId: "10479269367",
+  appId: "1:10479269367:web:76be3bc01aa43804e96af2"
 };
 
-function navigateTab(tab, btn) {
-  document.querySelectorAll('.b-tab').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+// Firebase Initialization
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-  if (tab === 'home') {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else if (tab === 'cart') {
-    document.getElementById('cart-modal').style.display = 'block';
-  } else if (tab === 'orders') {
-    if (!currentUser) return openAuthModal();
-    openMyOrders();
-  } else if (tab === 'profile') {
-    if (!currentUser) return openAuthModal();
-    openProfileModal();
-  } else if (tab === 'chat') {
-    if (!currentUser) return openAuthModal();
-    document.getElementById('chat-modal').style.display = 'block';
-    loadChatMessages();
-  }
-}
+let confirmationResultGlobal = null;
 
-// ---------------- 1-BY-1 AUTO-SLIDER ---------------- //
-async function loadBannersSlider() {
-  const res = await fetch('/api/banners');
-  const banners = await res.json();
-  const slider = document.getElementById('carousel-slider');
-  const dotsBox = document.getElementById('carousel-dots');
-
-  if (!banners || banners.length === 0) return;
-
-  slider.innerHTML = banners.map(b => `
-    <div class="carousel-slide">
-      <img src="${b.imageUrl}" alt="${b.title || 'Special Offer'}" onerror="this.src='https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200'">
-      ${b.title ? `<div class="carousel-caption">${b.title}</div>` : ''}
-    </div>
-  `).join('');
-
-  dotsBox.innerHTML = banners.map((_, i) => `<div class="dot ${i === 0 ? 'active' : ''}" onclick="goToBanner(${i})"></div>`).join('');
-
-  function updateSliderPosition() {
-    slider.style.transform = `translateX(-${currentBannerIndex * 100}%)`;
-    document.querySelectorAll('.dot').forEach((d, idx) => {
-      d.classList.toggle('active', idx === currentBannerIndex);
+function setupRecaptcha() {
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: (response) => {},
+      'expired-callback': () => {
+        if (window.recaptchaVerifier) {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier = null;
+        }
+      }
     });
   }
-
-  window.goToBanner = (idx) => {
-    currentBannerIndex = idx;
-    updateSliderPosition();
-    resetBannerTimer();
-  };
-
-  function startBannerTimer() {
-    bannerInterval = setInterval(() => {
-      currentBannerIndex = (currentBannerIndex + 1) % banners.length;
-      updateSliderPosition();
-    }, 4500);
-  }
-
-  function resetBannerTimer() {
-    if (bannerInterval) clearInterval(bannerInterval);
-    startBannerTimer();
-  }
-
-  startBannerTimer();
 }
 
-// ---------------- BEST DEALS PRODUCTS ---------------- //
-async function loadBestDeals() {
-  const res = await fetch('/api/products?bestDeal=true');
-  const deals = await res.json();
-  const wrapper = document.getElementById('best-deals-wrapper');
-  const list = document.getElementById('best-deals-list');
+// ==================== APP STATE & VARIABLES ==================== //
+let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let activeCategory = 'All';
+let bannersList = [];
+let bannerIndex = 0;
 
-  if (!deals || deals.length === 0) {
-    wrapper.style.display = 'none';
+// DOM Elements
+const authBtn = document.getElementById('auth-btn');
+const authBtnText = document.getElementById('auth-btn-text');
+const authModal = document.getElementById('auth-modal');
+const closeAuthModal = document.getElementById('close-auth-modal');
+const authPhoneStep = document.getElementById('auth-phone-step');
+const authOtpStep = document.getElementById('auth-otp-step');
+const authProfileStep = document.getElementById('auth-profile-step');
+const authPhoneInput = document.getElementById('auth-phone');
+const authOtpInput = document.getElementById('auth-otp');
+const sendOtpBtn = document.getElementById('send-otp-btn');
+const verifyOtpBtn = document.getElementById('verify-otp-btn');
+const backToPhoneBtn = document.getElementById('back-to-phone-btn');
+const saveProfileBtn = document.getElementById('save-profile-btn');
+
+const cartBtn = document.getElementById('cart-btn');
+const cartDrawer = document.getElementById('cart-drawer');
+const closeCartDrawer = document.getElementById('close-cart-drawer');
+const cartItemsContainer = document.getElementById('cart-items');
+const cartCountElem = document.getElementById('cart-count');
+const cartTotalPriceElem = document.getElementById('cart-total-price');
+const checkoutBtn = document.getElementById('checkout-btn');
+
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+
+// ==================== INITIAL LOAD ==================== //
+document.addEventListener('DOMContentLoaded', () => {
+  updateAuthUI();
+  updateCartUI();
+  loadBanners();
+  loadCategories();
+  loadProducts();
+  loadBestDeals();
+  initSupportChat();
+});
+
+// ==================== FIREBASE PHONE AUTHENTICATION ==================== //
+authBtn.addEventListener('click', () => {
+  if (currentUser) {
+    if (confirm("Kya aap logout karna chahte hain?")) {
+      auth.signOut();
+      localStorage.removeItem('currentUser');
+      currentUser = null;
+      updateAuthUI();
+      location.reload();
+    }
+  } else {
+    showAuthStep('phone');
+    authModal.style.display = 'flex';
+  }
+});
+
+closeAuthModal.addEventListener('click', () => authModal.style.display = 'none');
+
+function showAuthStep(step) {
+  authPhoneStep.style.display = step === 'phone' ? 'block' : 'none';
+  authOtpStep.style.display = step === 'otp' ? 'block' : 'none';
+  authProfileStep.style.display = step === 'profile' ? 'block' : 'none';
+}
+
+backToPhoneBtn.addEventListener('click', () => showAuthStep('phone'));
+
+// 1. Send OTP through Firebase SMS
+sendOtpBtn.addEventListener('click', async () => {
+  const phone = authPhoneInput.value.trim();
+  if (!/^[6-9]\d{9}$/.test(phone)) {
+    alert("Kripya 10-digit valid Indian mobile number enter karein!");
     return;
   }
 
-  wrapper.style.display = 'block';
-  list.innerHTML = deals.map(p => `
-    <div class="deal-card">
-      <span class="deal-badge">🔥 Deal</span>
-      <img src="${p.image}" alt="${p.name}">
-      <h4 style="font-size: 13px; margin: 4px 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</h4>
-      <div style="font-weight: bold; color: #dc2626; font-size: 13px; margin-bottom: 6px;">₹${p.price}</div>
-      <button style="width: 100%; padding: 5px; font-size: 12px; background: #dc2626; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price})">
-        Add to Cart
-      </button>
-    </div>
-  `).join('');
-}
+  sendOtpBtn.disabled = true;
+  sendOtpBtn.innerText = "SMS bhej rahe hain...";
 
-// ---------------- CATEGORIES & ALL PRODUCTS ---------------- //
-async function loadCategories() {
-  const res = await fetch('/api/categories');
-  const cats = await res.json();
-  const bar = document.getElementById('category-chips');
-  bar.innerHTML = `<div class="chip ${currentCategory === 'All' ? 'active' : ''}" onclick="selectCategory('All')">All</div>` +
-    cats.map(c => `<div class="chip ${currentCategory === c ? 'active' : ''}" onclick="selectCategory('${c}')">${c}</div>`).join('');
-}
+  try {
+    setupRecaptcha();
+    const appVerifier = window.recaptchaVerifier;
+    const formattedPhone = '+91' + phone;
 
-function selectCategory(cat) {
-  currentCategory = cat;
-  loadCategories();
-  loadProducts();
-}
-
-async function loadProducts() {
-  const q = document.getElementById('search-input').value;
-  const res = await fetch(`/api/products?category=${encodeURIComponent(currentCategory)}&q=${encodeURIComponent(q)}`);
-  const products = await res.json();
-  const list = document.getElementById('product-list');
-
-  if (products.length === 0) return list.innerHTML = "<p>No products found.</p>";
-
-  list.innerHTML = products.map(p => `
-    <div class="card">
-      <img src="${p.image}" alt="${p.name}">
-      <h3>${p.name} ${p.isBestDeal ? '<span style="color:#dc2626; font-size:11px;">🔥</span>' : ''}</h3>
-      <p style="font-weight: bold; margin: 4px 0 10px 0;">₹${p.price}</p>
-      <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price})">Add to Cart</button>
-    </div>
-  `).join('');
-}
-
-function handleSearch() { loadProducts(); }
-
-// ---------------- CART & CHECKOUT ---------------- //
-function addToCart(id, name, price) {
-  const item = cart.find(i => i.id === id);
-  if (item) item.quantity += 1;
-  else cart.push({ id, name, price, quantity: 1 });
-  updateCartUI();
-  alert(`${name} cart me add ho gaya!`);
-}
-
-function updateCartUI() {
-  document.getElementById('cart-count').innerText = cart.reduce((s, i) => s + i.quantity, 0);
-  document.getElementById('cart-total').innerText = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
-  const div = document.getElementById('cart-items');
-  if (cart.length === 0) div.innerHTML = "<p>Cart khali hai.</p>";
-  else div.innerHTML = cart.map(i => `<p>${i.name} x ${i.quantity} = ₹${i.price * i.quantity}</p>`).join('');
-}
-
-async function checkout() {
-  if (!currentUser) return openAuthModal();
-  if (!currentUser.profileCompleted) {
-    alert("Kripya checkout se pehle profile me address bharein!");
-    return openProfileModal();
+    confirmationResultGlobal = await auth.signInWithPhoneNumber(formattedPhone, appVerifier);
+    alert("OTP aapke mobile inbox par bhej diya gaya hai!");
+    showAuthStep('otp');
+  } catch (err) {
+    console.error("Firebase SMS Delivery Error:", err);
+    alert("OTP send fail hua: " + err.message);
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+  } finally {
+    sendOtpBtn.disabled = false;
+    sendOtpBtn.innerText = "Send OTP";
   }
-  if (cart.length === 0) return alert("Cart khali hai!");
+});
 
-  const res = await fetch('/api/checkout', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ customer: currentUser, cart })
-  });
+// 2. Verify OTP with Firebase & Sync with MongoDB
+verifyOtpBtn.addEventListener('click', async () => {
+  const otp = authOtpInput.value.trim();
+  const phone = authPhoneInput.value.trim();
 
-  const data = await res.json();
-  if (data.success) {
-    alert(`Order Placed! Order ID: ${data.orderId}`);
-    cart = [];
-    updateCartUI();
-    document.getElementById('cart-modal').style.display = 'none';
+  if (!otp || otp.length !== 6) {
+    alert("Kripya 6-digit OTP enter karein!");
+    return;
   }
-}
 
-// ---------------- ORDERS, SUPPORT & AUTH ---------------- //
-function openAuthModal() { document.getElementById('auth-modal').style.display = 'block'; }
-function closeAuthModal() { document.getElementById('auth-modal').style.display = 'none'; }
+  verifyOtpBtn.disabled = true;
+  verifyOtpBtn.innerText = "Verifying...";
 
-async function sendOtp() {
-  const phone = document.getElementById('auth-phone').value.trim();
-  if (!/^[6-9]\d{9}$/.test(phone)) return alert("10-digit mobile number dalein!");
+  try {
+    const confirmation = await confirmationResultGlobal.confirm(otp);
+    const firebaseUser = confirmation.user;
 
-  pendingPhone = phone;
-  const res = await fetch('/api/auth/send-otp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone })
-  });
-  const data = await res.json();
-  if (data.success) {
-    alert(data.message);
-    document.getElementById('phone-step-1').style.display = 'none';
-    document.getElementById('phone-step-2').style.display = 'block';
+    const res = await fetch('/api/auth/firebase-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone, uid: firebaseUser.uid })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.user;
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+      if (!currentUser.profileCompleted) {
+        showAuthStep('profile');
+      } else {
+        alert("Login safal raha!");
+        authModal.style.display = 'none';
+        updateAuthUI();
+      }
+    }
+  } catch (err) {
+    console.error("OTP Verification Error:", err);
+    alert("Galat OTP ya expire ho gaya hai!");
+  } finally {
+    verifyOtpBtn.disabled = false;
+    verifyOtpBtn.innerText = "Verify OTP";
   }
-}
+});
 
-async function verifyOtp() {
-  const otp = document.getElementById('auth-otp').value.trim();
-  const res = await fetch('/api/auth/verify-otp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: pendingPhone, otp })
-  });
-  const data = await res.json();
-  if (data.success) {
-    currentUser = data.user;
-    localStorage.setItem('smartStoreUser', JSON.stringify(currentUser));
-    closeAuthModal();
-    updateUserUI();
-    if (!currentUser.profileCompleted) openProfileModal();
-  } else {
-    alert(data.message);
+// 3. Save User Profile to Database
+saveProfileBtn.addEventListener('click', async () => {
+  const name = document.getElementById('profile-name').value.trim();
+  const houseNo = document.getElementById('profile-house').value.trim();
+  const city = document.getElementById('profile-city').value.trim();
+  const address = document.getElementById('profile-address').value.trim();
+
+  if (!name || !address) {
+    alert("Naam aur Address bharna zaroori hai!");
+    return;
   }
-}
-
-function openProfileModal() {
-  document.getElementById('profile-modal').style.display = 'block';
-  if (currentUser) {
-    document.getElementById('prof-phone').value = currentUser.phone || "";
-    document.getElementById('prof-name').value = currentUser.name || "";
-    document.getElementById('prof-house').value = currentUser.houseNo || "";
-    document.getElementById('prof-city').value = currentUser.city || "";
-    document.getElementById('prof-address').value = currentUser.address || "";
-  }
-}
-
-function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
-
-async function saveProfile() {
-  const name = document.getElementById('prof-name').value.trim();
-  const houseNo = document.getElementById('prof-house').value.trim();
-  const city = document.getElementById('prof-city').value.trim();
-  const address = document.getElementById('prof-address').value.trim();
-
-  if (!name || !address) return alert("Name aur Address bharna zaroori hai!");
 
   const res = await fetch('/api/auth/update-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone: currentUser.phone, name, houseNo, city, address })
   });
+
   const data = await res.json();
   if (data.success) {
     currentUser = data.user;
-    localStorage.setItem('smartStoreUser', JSON.stringify(currentUser));
-    alert("Profile saved!");
-    closeProfileModal();
-    updateUserUI();
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    alert("Profile setup complete ho gaya!");
+    authModal.style.display = 'none';
+    updateAuthUI();
   }
-}
+});
 
-function updateUserUI() {
-  const statusDiv = document.getElementById('user-header-status');
+function updateAuthUI() {
   if (currentUser) {
-    statusDiv.innerHTML = `<span style="font-size: 13px; color: #38bdf8; cursor: pointer;" onclick="openProfileModal()">👋 ${currentUser.name || currentUser.phone}</span>`;
+    authBtnText.innerText = currentUser.name ? currentUser.name.split(' ')[0] : currentUser.phone;
   } else {
-    statusDiv.innerHTML = `<button class="nav-btn" onclick="openAuthModal()">Login</button>`;
+    authBtnText.innerText = 'Login';
   }
 }
 
-async function openMyOrders() {
-  document.getElementById('orders-modal').style.display = 'block';
-  const res = await fetch(`/api/orders/my-orders?customerId=${encodeURIComponent(currentUser.phone)}`);
-  const orders = await res.json();
-  const box = document.getElementById('my-orders-list');
-  if (orders.length === 0) return box.innerHTML = "<p>Koi order nahi mila.</p>";
-  box.innerHTML = orders.map(o => `
-    <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin-bottom:8px;">
-      <strong>Order ID: ${o.orderId}</strong>
-      <p style="margin:4px 0;">Total: ₹${o.total} | Status: ${o.delivered ? '✅ Delivered' : '⏳ Pending'}</p>
+// ==================== BANNERS SLIDER ==================== //
+async function loadBanners() {
+  try {
+    const res = await fetch('/api/banners');
+    bannersList = await res.json();
+    const wrapper = document.getElementById('slider-wrapper');
+    if (bannersList.length === 0) return;
+
+    wrapper.innerHTML = bannersList.map(b => `
+      <div class="slide">
+        <img src="${b.imageUrl}" alt="${b.title}">
+      </div>
+    `).join('');
+
+    setInterval(() => {
+      bannerIndex = (bannerIndex + 1) % bannersList.length;
+      wrapper.style.transform = `translateX(-${bannerIndex * 100}%)`;
+    }, 4000);
+  } catch (e) {
+    console.error("Banner error:", e);
+  }
+}
+
+// ==================== CATEGORIES & PRODUCTS ==================== //
+async function loadCategories() {
+  try {
+    const res = await fetch('/api/categories');
+    const categories = await res.json();
+    const container = document.getElementById('category-chips');
+
+    categories.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.dataset.category = cat;
+      btn.innerText = cat;
+      btn.onclick = () => {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        activeCategory = cat;
+        loadProducts();
+      };
+      container.appendChild(btn);
+    });
+  } catch (e) {
+    console.error("Categories fetch error:", e);
+  }
+}
+
+async function loadBestDeals() {
+  try {
+    const res = await fetch('/api/products?bestDeal=true');
+    const deals = await res.json();
+    renderProductsList(deals, 'best-deals-grid');
+  } catch (e) {
+    console.error("Deals error:", e);
+  }
+}
+
+async function loadProducts(query = '') {
+  try {
+    let url = `/api/products?category=${activeCategory}`;
+    if (query) url += `&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    const products = await res.json();
+    renderProductsList(products, 'products-grid');
+  } catch (e) {
+    console.error("Products error:", e);
+  }
+}
+
+function renderProductsList(products, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (products.length === 0) {
+    container.innerHTML = '<p class="empty-msg">Koi product nahi mila.</p>';
+    return;
+  }
+
+  container.innerHTML = products.map(p => `
+    <div class="product-card">
+      <img src="${p.image || 'https://via.placeholder.com/200'}" alt="${p.name}">
+      <h4>${p.name}</h4>
+      <p class="price">₹${p.price}</p>
+      <button class="btn btn-sm btn-primary" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, '${p.image}')">
+        <i class="fa-solid fa-plus"></i> Add to Cart
+      </button>
     </div>
   `).join('');
 }
 
-async function loadChatMessages() {
-  const res = await fetch(`/api/support/messages?customerId=${encodeURIComponent(currentUser.phone)}`);
-  const msgs = await res.json();
-  document.getElementById('chat-messages').innerHTML = msgs.map(m => `
-    <div style="text-align:${m.sender === 'customer' ? 'right' : 'left'}; margin: 4px 0;">
-      <span style="background:${m.sender === 'customer' ? '#2563eb' : '#e2e8f0'}; color:${m.sender === 'customer' ? 'white' : 'black'}; padding:6px 10px; border-radius:12px; display:inline-block; font-size:13px;">
-        ${m.text}
-      </span>
+// Search
+searchBtn.addEventListener('click', () => loadProducts(searchInput.value.trim()));
+searchInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') loadProducts(searchInput.value.trim());
+});
+
+// ==================== CART & CHECKOUT ==================== //
+cartBtn.addEventListener('click', () => cartDrawer.classList.add('open'));
+closeCartDrawer.addEventListener('click', () => cartDrawer.classList.remove('open'));
+
+function addToCart(id, name, price, image) {
+  const existing = cart.find(item => item.id === id);
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    cart.push({ id, name, price, image, quantity: 1 });
+  }
+  saveAndUpdateCart();
+}
+
+function updateQuantity(id, change) {
+  const item = cart.find(i => i.id === id);
+  if (item) {
+    item.quantity += change;
+    if (item.quantity <= 0) {
+      cart = cart.filter(i => i.id !== id);
+    }
+  }
+  saveAndUpdateCart();
+}
+
+function saveAndUpdateCart() {
+  localStorage.setItem('cart', JSON.stringify(cart));
+  updateCartUI();
+}
+
+function updateCartUI() {
+  const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  cartCountElem.innerText = totalCount;
+  cartTotalPriceElem.innerText = '₹' + totalPrice;
+
+  if (cart.length === 0) {
+    cartItemsContainer.innerHTML = '<p class="empty-msg">Aapka cart khali hai.</p>';
+    return;
+  }
+
+  cartItemsContainer.innerHTML = cart.map(item => `
+    <div class="cart-item">
+      <img src="${item.image || 'https://via.placeholder.com/60'}" width="50" height="50">
+      <div class="cart-details">
+        <h5>${item.name}</h5>
+        <span>₹${item.price} x ${item.quantity}</span>
+      </div>
+      <div class="cart-qty-controls">
+        <button onclick="updateQuantity('${item.id}', -1)">-</button>
+        <span>${item.quantity}</span>
+        <button onclick="updateQuantity('${item.id}', 1)">+</button>
+      </div>
     </div>
   `).join('');
 }
 
-async function sendChatMessage() {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text) return;
-  await fetch('/api/support/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ customerId: currentUser.phone, customerName: currentUser.name, text, sender: 'customer' })
+// Checkout
+checkoutBtn.addEventListener('click', async () => {
+  if (cart.length === 0) {
+    alert("Cart khali hai!");
+    return;
+  }
+
+  if (!currentUser) {
+    alert("Kripya pehle Login karein!");
+    showAuthStep('phone');
+    authModal.style.display = 'flex';
+    return;
+  }
+
+  if (!currentUser.profileCompleted) {
+    alert("Kripya delivery address complete karein!");
+    showAuthStep('profile');
+    authModal.style.display = 'flex';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customer: currentUser, cart })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert(`🎉 Order safaltapoorvak place ho chuka hai! Order ID: ${data.orderId}`);
+      cart = [];
+      saveAndUpdateCart();
+      cartDrawer.classList.remove('open');
+    }
+  } catch (err) {
+    alert("Checkout me issue aaya, kripya dubara try karein!");
+  }
+});
+
+// ==================== LIVE CHAT / SUPPORT ==================== //
+function initSupportChat() {
+  const toggleBtn = document.getElementById('toggle-support');
+  const supportBody = document.getElementById('support-body');
+  const sendBtn = document.getElementById('support-send-btn');
+  const msgInput = document.getElementById('support-input');
+
+  toggleBtn.addEventListener('click', () => {
+    const isOpen = supportBody.style.display === 'block';
+    supportBody.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen && currentUser) loadMessages();
   });
-  input.value = '';
-  loadChatMessages();
+
+  sendBtn.addEventListener('click', async () => {
+    const text = msgInput.value.trim();
+    if (!text) return;
+    if (!currentUser) {
+      alert("Support se chat karne ke liye pehle Login karein!");
+      return;
+    }
+
+    await fetch('/api/support/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerId: currentUser.phone,
+        sender: 'customer',
+        text: text,
+        timestamp: new Date().toLocaleTimeString()
+      })
+    });
+
+    msgInput.value = '';
+    loadMessages();
+  });
+}
+
+async function loadMessages() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch(`/api/support/messages?customerId=${currentUser.phone}`);
+    const msgs = await res.json();
+    const box = document.getElementById('support-messages');
+    box.innerHTML = msgs.map(m => `
+      <div class="msg ${m.sender === 'customer' ? 'sent' : 'received'}">
+        <p>${m.text}</p>
+        <span class="time">${m.timestamp || ''}</span>
+      </div>
+    `).join('');
+    box.scrollTop = box.scrollHeight;
+  } catch (e) {}
 }
