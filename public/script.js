@@ -1,34 +1,3 @@
-// ==================== FIREBASE CONFIGURATION ==================== //
-const firebaseConfig = {
-  apiKey: "AIzaSyBAyIUzIvEJ4Qef2TuG8NrZcpPKLyuR6F0",
-  authDomain: "smartstore-auth.firebaseapp.com",
-  projectId: "smartstore-auth",
-  storageBucket: "smartstore-auth.firebasestorage.app",
-  messagingSenderId: "10479269367",
-  appId: "1:10479269367:web:76be3bc01aa43804e96af2"
-};
-// Initialize Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-let confirmationResultGlobal = null;
-
-function setupRecaptcha() {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-      size: 'invisible',
-      callback: () => {},
-      'expired-callback': () => {
-        if (window.recaptchaVerifier) {
-          window.recaptchaVerifier.clear();
-          window.recaptchaVerifier = null;
-        }
-      }
-    });
-  }
-}
-
 // ==================== APP STATE ==================== //
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -45,11 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProducts();
 });
 
-// ==================== AUTH & SMS OTP HANDLING ==================== //
+// ==================== AUTH & FAST NUMBER VERIFICATION ==================== //
 function openAuthModal() {
   if (currentUser) {
     if (confirm("Kya aap logout karna chahte hain?")) {
-      auth.signOut();
       localStorage.removeItem('currentUser');
       currentUser = null;
       renderUserStatus();
@@ -96,7 +64,7 @@ function renderUserStatus() {
   }
 }
 
-// 1. Mobile Inbox par Free SMS OTP bhejna
+// 1. Send SMS via Fast2SMS
 async function sendOtp() {
   const phone = document.getElementById('auth-phone').value.trim();
   if (!/^[6-9]\d{9}$/.test(phone)) {
@@ -106,38 +74,41 @@ async function sendOtp() {
 
   const btn = document.getElementById('send-otp-btn');
   btn.disabled = true;
-  btn.innerText = "SMS OTP bhej rahe hain...";
+  btn.innerText = "SMS Bhej rahe hain...";
 
   try {
-    setupRecaptcha();
-    const appVerifier = window.recaptchaVerifier;
-    const formattedPhone = '+91' + phone;
+    const res = await fetch('/api/auth/send-fast-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
 
-    confirmationResultGlobal = await auth.signInWithPhoneNumber(formattedPhone, appVerifier);
-    
-    alert("✅ OTP aapke mobile number par SMS ke dwara bhej diya gaya hai!");
-    document.getElementById('phone-step-1').style.display = 'none';
-    document.getElementById('phone-step-2').style.display = 'block';
-  } catch (err) {
-    console.error("Firebase SMS Send Error:", err);
-    alert("SMS OTP bhejne me samasya: " + err.message);
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
+    const data = await res.json();
+    if (data.success) {
+      alert("📲 " + data.message);
+      document.getElementById('phone-step-1').style.display = 'none';
+      document.getElementById('phone-step-2').style.display = 'block';
+      document.getElementById('auth-otp').value = ''; // Blank taaki user apne SIM ke SMS se code dekh kar daale
+      document.getElementById('auth-otp').focus();
+    } else {
+      alert(data.message || "SMS bhejne me dikkat aayi");
     }
+  } catch (err) {
+    console.error("Fast2SMS Auth Error:", err);
+    alert("Server error, kripya dubara koshish karein!");
   } finally {
     btn.disabled = false;
-    btn.innerText = "Send OTP via SMS";
+    btn.innerText = "Send Verification OTP";
   }
 }
 
-// 2. OTP Verify karna aur MongoDB Database me sync karna
+// 2. Verify OTP from SIM
 async function verifyOtp() {
   const otp = document.getElementById('auth-otp').value.trim();
   const phone = document.getElementById('auth-phone').value.trim();
 
   if (!otp || otp.length !== 6) {
-    alert("Kripya 6-digit OTP darj karein!");
+    alert("Kripya SMS me aaya 6-digit OTP darj karein!");
     return;
   }
 
@@ -146,14 +117,10 @@ async function verifyOtp() {
   btn.innerText = "Verifying...";
 
   try {
-    const confirmation = await confirmationResultGlobal.confirm(otp);
-    const firebaseUser = confirmation.user;
-
-    // Backend route se MongoDB sync
-    const res = await fetch('/api/auth/firebase-login', {
+    const res = await fetch('/api/auth/verify-fast-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone, uid: firebaseUser.uid })
+      body: JSON.stringify({ phone, otp })
     });
 
     const data = await res.json();
@@ -166,21 +133,21 @@ async function verifyOtp() {
       if (!currentUser.profileCompleted) {
         openProfileModal();
       } else {
-        alert("🎉 Verification aur Login safal raha!");
+        alert("🎉 Mobile verification safal raha!");
       }
     } else {
-      alert("Database sync issue: " + data.message);
+      alert(data.message || "Galat OTP!");
     }
   } catch (err) {
-    console.error("OTP Verification Error:", err);
-    alert("Galat OTP ya code expire ho chuka hai!");
+    console.error("Verification error:", err);
+    alert("Server connection failed!");
   } finally {
     btn.disabled = false;
     btn.innerText = "Verify OTP";
   }
 }
 
-// Profile Save
+// Save Profile
 async function saveProfile() {
   const name = document.getElementById('prof-name').value.trim();
   const houseNo = document.getElementById('prof-house').value.trim();
@@ -416,7 +383,7 @@ async function checkout() {
     return;
   }
   if (!currentUser) {
-    alert("Order karne ke liye pehle Mobile OTP se Login karein!");
+    alert("Order karne ke liye pehle Mobile number verify karein!");
     openAuthModal();
     return;
   }
@@ -444,7 +411,7 @@ async function checkout() {
 // ==================== ORDERS & SUPPORT CHAT ==================== //
 async function openOrdersModal() {
   if (!currentUser) {
-    alert("Pehle mobile number se login karein!");
+    alert("Pehle mobile number verify karein!");
     openAuthModal();
     return;
   }

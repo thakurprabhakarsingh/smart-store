@@ -13,23 +13,89 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
-// ---------------- USER FIREBASE SMS SYNC & AUTH ROUTES ---------------- //
-app.post('/api/auth/firebase-login', async (req, res) => {
+// ---------------- FAST2SMS REAL SIM OTP AUTH ---------------- //
+const otpStorage = {}; // { "9876543210": { otp: "458921", expires: timestamp } }
+
+const FAST2SMS_API_KEY = process.env.FAST2SMS_KEY || 'vjbDcd6O3z1mRgCFYJypGr4ZPsuNxME7hot08Ql2AikfIHWq5UqdfQZz9Mnei0mrIBERHtDgNWksXKob';
+
+// Step 1: Send Real SMS OTP to User's SIM
+app.post('/api/auth/send-fast-otp', async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai!' });
+    if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number zaroori hai!' });
+    }
+
+    // 6-digit random code
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    otpStorage[phone] = {
+      otp: generatedOtp,
+      expires: Date.now() + 5 * 60 * 1000 // 5 minutes validity
+    };
+
+    console.log(`📡 Sending Fast2SMS OTP to ${phone}...`);
+
+    const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+      method: 'POST',
+      headers: {
+        'authorization': FAST2SMS_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        route: 'otp',
+        variables_values: generatedOtp,
+        numbers: phone
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.return === true) {
+      console.log(`✅ SMS successfully delivered to SIM: ${phone}`);
+      res.json({
+        success: true,
+        message: 'OTP aapke mobile SIM par SMS ke roop me bhej diya gaya hai!'
+      });
+    } else {
+      console.error('Fast2SMS Error Response:', result);
+      res.status(400).json({
+        success: false,
+        message: result.message?.[0] || 'SMS bhejne me dikkat aayi. Kripya check karein number active hai ya nahi.'
+      });
+    }
+  } catch (err) {
+    console.error('Fast2SMS Server Error:', err);
+    res.status(500).json({ success: false, message: 'SMS gateway error, kripya thodi der me koshish karein.' });
+  }
+});
+
+// Step 2: Verify OTP & Login/Register
+app.post('/api/auth/verify-fast-otp', async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) {
+      return res.status(400).json({ success: false, message: 'Phone number aur OTP dono zaroori hain!' });
+    }
+
+    const record = otpStorage[phone];
+    if (!record || record.otp !== otp || Date.now() > record.expires) {
+      return res.status(400).json({ success: false, message: 'Galat OTP ya code expire ho chuka hai!' });
+    }
+
+    delete otpStorage[phone]; // Clear after successful verify
 
     let user = await User.findOne({ phone });
     if (!user) {
       user = await User.create({ phone, profileCompleted: false });
     }
+
     res.json({ success: true, user });
   } catch (err) {
-    console.error("Firebase Login Sync Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
+// Profile Update Route
 app.post('/api/auth/update-profile', async (req, res) => {
   const { phone, name, houseNo, city, address } = req.body;
   if (!phone || !name || !address) {
