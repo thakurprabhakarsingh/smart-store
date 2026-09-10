@@ -213,7 +213,10 @@ app.post('/api/support/send', async (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/admin/*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html')));
+// Admin fallback (sirf non-static requests ke liye)
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
+});
 
 connectDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
