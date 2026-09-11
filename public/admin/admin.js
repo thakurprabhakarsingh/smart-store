@@ -107,7 +107,6 @@ async function loadAdminOrders(isSilent = false) {
 
 function renderPendingOrders(orders) {
   const box = document.getElementById('orders-list');
-  // Sirf non-delivered (pending) orders yahan dikhenge
   const pendingOnly = orders.filter(o => !o.delivered);
 
   if (pendingOnly.length === 0) {
@@ -152,7 +151,6 @@ async function markDelivered(orderId) {
   });
   const data = await res.json();
   if (data.success) {
-    // Turant screen se hat jayega
     loadAdminOrders();
   }
 }
@@ -253,45 +251,101 @@ function resetCalendarFilter() {
   filterDeliveredByCalendar();
 }
 
-// ---------------- PRODUCTS & BEST DEALS ---------------- //
+// ---------------- PRODUCTS & AUTO-COMPRESSION ---------------- //
 function handleImageSelection(event) {
   const file = event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = function(e) {
-    selectedImageBase64 = e.target.result;
-    document.getElementById('prod-img-preview').src = selectedImageBase64;
-    document.getElementById('image-preview-wrapper').style.display = 'block';
+    const img = new Image();
+    img.src = e.target.result;
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 800;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height && width > MAX_SIZE) {
+        height *= MAX_SIZE / width;
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width *= MAX_SIZE / height;
+        height = MAX_SIZE;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+      const preview = document.getElementById('prod-img-preview');
+      if (preview) preview.src = selectedImageBase64;
+      const wrap = document.getElementById('image-preview-wrapper');
+      if (wrap) wrap.style.display = 'block';
+    };
   };
   reader.readAsDataURL(file);
 }
 
 async function addProduct() {
-  const name = document.getElementById('prod-name').value.trim();
-  const price = document.getElementById('prod-price').value.trim();
-  const category = document.getElementById('prod-category').value;
-  const isBestDeal = document.getElementById('prod-best-deal').checked;
+  const nameEl = document.getElementById('prod-name');
+  const priceEl = document.getElementById('prod-price');
+  const catEl = document.getElementById('prod-category');
+  const dealEl = document.getElementById('prod-best-deal');
+
+  const name = nameEl ? nameEl.value.trim() : "";
+  const price = priceEl ? priceEl.value.trim() : "";
+  const category = catEl ? catEl.value : "All";
+  const isBestDeal = dealEl ? Boolean(dealEl.checked) : false;
   const image = selectedImageBase64;
 
-  if (!name || !price || !category || !image) return alert("Saari details bharein!");
+  if (!name || !price) {
+    return alert("Product Name aur Price bharna zaroori hai!");
+  }
+  if (!image) {
+    return alert("Product ki Photo select karein!");
+  }
 
-  const res = await fetch('/api/products', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': adminToken },
-    body: JSON.stringify({ name, price, category, image, isBestDeal })
-  });
+  try {
+    const res = await fetch('/api/products', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': adminToken || ''
+      },
+      body: JSON.stringify({
+        name,
+        price: Number(price),
+        category,
+        image,
+        isBestDeal
+      })
+    });
 
-  const data = await res.json();
-  if (data.success) {
-    alert("Product added successfully!");
-    document.getElementById('prod-name').value = '';
-    document.getElementById('prod-price').value = '';
-    document.getElementById('prod-best-deal').checked = false;
-    document.getElementById('image-preview-wrapper').style.display = 'none';
-    selectedImageBase64 = "";
-    toggleAccordion('add-prod-collapse');
-    loadAdminProducts();
+    const data = await res.json();
+
+    if (data.success) {
+      alert("✅ Product safalta se add ho gaya!");
+      if (nameEl) nameEl.value = '';
+      if (priceEl) priceEl.value = '';
+      if (dealEl) dealEl.checked = false;
+      const wrap = document.getElementById('image-preview-wrapper');
+      if (wrap) wrap.style.display = 'none';
+      selectedImageBase64 = "";
+
+      const formCollapse = document.getElementById('add-prod-collapse');
+      if (formCollapse) formCollapse.style.display = 'none';
+
+      loadAdminProducts();
+    } else {
+      alert("❌ Add nahi ho saka: " + (data.message || "Server Error"));
+    }
+  } catch (err) {
+    console.error("Add Product Error:", err);
+    alert("❌ Network / Server Error: Request send nahi hui.");
   }
 }
 
